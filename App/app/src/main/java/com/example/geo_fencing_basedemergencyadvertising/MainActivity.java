@@ -23,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Log.d("TESTLOG", "test");
+        Log.d("TESTLOG2","test2");
 //        activityRecognitionClient = ActivityRecognition.getClient(this);
 //
 //        Intent intent = new Intent(this, ActivityRecognitionService.class);
