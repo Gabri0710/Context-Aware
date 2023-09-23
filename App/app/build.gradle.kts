@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "com.example.geo_fencing_basedemergencyadvertising"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.example.geo_fencing_basedemergencyadvertising"
@@ -26,6 +26,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+    buildToolsVersion = "34.0.0"
 }
 
 dependencies {
