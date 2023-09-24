@@ -3,7 +3,11 @@ package com.example.geo_fencing_basedemergencyadvertising;
 import android.app.IntentService;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
+
 import com.google.android.gms.location.ActivityRecognitionResult;
 import com.google.android.gms.location.DetectedActivity;
 
@@ -27,9 +31,24 @@ public class ActivityRecognitionService extends IntentService {
             String message = "Attività rilevata: " + activityName + " (Confidenza: " + confidence + ")";
             Log.d("ActivityRecognition", message);
 
+            showActivityToast(message);
+
+
         }
 
     }
+
+    private void showActivityToast(String message) {
+        Handler handler = new Handler(Looper.getMainLooper());
+
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
 
     private String getActivityName(int activityType) {
         switch (activityType) {

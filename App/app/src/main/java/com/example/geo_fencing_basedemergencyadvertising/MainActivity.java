@@ -13,6 +13,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.location.ActivityRecognition;
 import com.google.android.gms.location.ActivityRecognitionClient;
@@ -40,10 +41,11 @@ public class MainActivity extends AppCompatActivity {
                         // L'utente ha concesso l'autorizzazione ACTIVITY_RECOGNITION
                         // Si può procedere con il riconoscimento dell'attività
                         Log.d("AUTORIZZAZIONE", "Concessa");
+                        Toast.makeText(getApplicationContext(), "AUTORIZZAZIONE concessa", Toast.LENGTH_SHORT).show();
                     } else {
                         // L'utente ha negato l'autorizzazione ACTIVITY_RECOGNITION
                         // Da gestire di conseguenza (ad esempio, informare l'utente o chiudere l'app)
-                        Log.d("AUTORIZZAZIONE", "Negata");
+                        Toast.makeText(getApplicationContext(), "AUTORIZZAZIONE negata", Toast.LENGTH_SHORT).show();
                     }
                 });
 
@@ -65,10 +67,10 @@ public class MainActivity extends AppCompatActivity {
                 this,
                 0,
                 intent,
-                PendingIntent.FLAG_UPDATE_CURRENT
+                PendingIntent.FLAG_MUTABLE
         );
 
-
+        Toast.makeText(getApplicationContext(), "START", Toast.LENGTH_SHORT).show();
         // Richiedi le attività rilevate
         activityRecognitionClient.requestActivityUpdates(1000, pendingIntent);
     }
