@@ -10,6 +10,9 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 
 
+import android.annotation.SuppressLint;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -33,7 +36,11 @@ import com.google.android.gms.tasks.Task;
 public class MainActivity extends AppCompatActivity {
     // Launcher per la richiesta di autorizzazione. Nelle nuove versioni di android bisogna richiederla anche da codice e non solo nel manifest
     private ActivityResultLauncher<String> requestPermissionLauncher;
+
     private ActivityResultLauncher<String> locationPermissionLauncher;
+
+    private ActivityResultLauncher<String> requestPermissionNotificationLauncher;
+
 
     //definisco client riconoscimento attività
     private ActivityRecognitionClient activityRecognitionClient;
@@ -52,6 +59,9 @@ public class MainActivity extends AppCompatActivity {
     private FusedLocationProviderClient fusedLocationClient;
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
+
+    private NotificationChannel alertChannel;
+    private AlertReceiver alertReceiver;
 
 
     //definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
@@ -82,10 +92,35 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Creazione del canale delle notifiche per gli alert
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+             /* Verifica se il dispositivo Android in esecuzione ha una versione maggiore o uguale
+                a Android 8.0 (API 26) perché i canali delle notifiche sono supportati solo in questa versione in poi */
+            String channelId = "alertChannelId";
+            CharSequence channelName = "ALERT CHANNEL";
+            String channelDescription = "Canale utile per la ricezione delle notifiche di nuovi alert";
+            int importance = NotificationManager.IMPORTANCE_HIGH;
+
+            alertChannel = new NotificationChannel(channelId, channelName, importance);
+            alertChannel.setDescription(channelDescription);
+
+            // Ottieni il NotificationManager
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+
+            // Crea il canale
+            notificationManager.createNotificationChannel(alertChannel);
+
+            // Creo il receiver degli alert e setto l'ìd del canale
+            alertReceiver = new AlertReceiver(alertChannel.getId());
+        } else {
+            throw new RuntimeException("SDK VERSION BELOW 26");
+        }
 
         // Inizializzo il launcher per la richiesta di autorizzazione. Viene richiamato se non abbiamo concesso l'autorizzazione per il riconoscimento delle attività
         requestPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
@@ -133,9 +168,25 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        // Inizializzo il launcher per la richiesta di autorizzazione. Viene richiamato se non abbiamo concesso l'autorizzazione per il riconoscimento delle attività
+        requestPermissionNotificationLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+                isGranted -> {
+                    if (isGranted) {
+                        // L'utente ha concesso l'autorizzazione POST_NOTIFICATIONS
+                        // Si può procedere con il riconoscimento dell'attività
+                        Log.d("AUTORIZZAZIONE", "Concessa");
+                        Toast.makeText(getApplicationContext(), "AUTORIZZAZIONE NOTIFICHE concessa", Toast.LENGTH_SHORT).show();
+                    } else {
+                        // L'utente ha negato l'autorizzazione ACTIVITY_RECOGNITION
+                        // Da gestire di conseguenza (ad esempio, informare l'utente o chiudere l'app)
+                        Toast.makeText(getApplicationContext(), "AUTORIZZAZIONE NOTIFICHE negata", Toast.LENGTH_SHORT).show();
+                    }
+                });
 
-
-
+        if (ContextCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+            // Se il permesso non è stato concesso, richiedilo all'utente
+            requestPermissionNotificationLauncher.launch("android.permission.POST_NOTIFICATIONS");
+        }
 
         //inizializzo activityRecognition e pendingIntent
         activityRecognitionClient = ActivityRecognition.getClient(this);
@@ -169,5 +220,15 @@ public class MainActivity extends AppCompatActivity {
 
         // Richiedi le attività rilevate
         activityRecognitionClient.requestActivityUpdates(1000, pendingIntent);
+
+        //inizializzo l'intentFilter per i risultati dell'Activity Recognition
+        IntentFilter alertIntentFilter = new IntentFilter("ACTION_NEW_ALERT_NOTIFICATION");
+        //setto il receiver per ottenere i risultati della misurazione
+        registerReceiver(alertReceiver, alertIntentFilter);
+
+        // Prova di invio di una notifica
+        Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+        sendBroadcast(alertIntent);
+
     }
 }
