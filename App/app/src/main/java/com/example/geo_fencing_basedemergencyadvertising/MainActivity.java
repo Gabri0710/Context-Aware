@@ -24,14 +24,20 @@ import com.google.android.gms.location.ActivityRecognitionResult;
 import com.google.android.gms.tasks.Task;
 
 public class MainActivity extends AppCompatActivity {
+    // Launcher per la richiesta di autorizzazione. Nelle nuove versioni di android bisogna richiederla anche da codice e non solo nel manifest
+    private ActivityResultLauncher<String> requestPermissionLauncher;
+
     //definisco client riconoscimento attività
     private ActivityRecognitionClient activityRecognitionClient;
 
     //definisco PendingIntent per ricevere i risultati del riconoscimento
     private PendingIntent pendingIntent;
 
-    // Launcher per la richiesta di autorizzazione. Nelle nuove versioni di android bisogna richiederla anche da codice e non solo nel manifest
-    private ActivityResultLauncher<String> requestPermissionLauncher;
+    //definisco le attività alla quale sono interessato: WALKING e IN_VEHICLE
+    private static final int WALKING = 1;
+    private static final int IN_VEHICLE = 2;
+
+    private int recognizedActivity;
 
 
     private BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
@@ -39,8 +45,24 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction() != null && intent.getAction().equals("ACTION_ACTIVITY_RECOGNITION_RESULT")) {
                 String activityMessage = intent.getStringExtra("ACTIVITY_MESSAGE");
-                Toast.makeText(MainActivity.this, activityMessage, Toast.LENGTH_SHORT).show();
-                Log.d("RICEZIONE", "confermata");
+                if(activityMessage=="In macchina"){
+                    recognizedActivity = IN_VEHICLE;
+                }
+                else if(activityMessage=="Camminare"||activityMessage=="A piedi"){
+                    recognizedActivity = WALKING;
+                }
+
+                //if da eliminare successivamente. Utile adesso solo per test.
+                //Successivamente la variabile recognizedActivity ci servirà solo quando dovremo inviare l'attività rilevata al backend
+                if(recognizedActivity==1){
+                    Toast.makeText(MainActivity.this, "walking", Toast.LENGTH_SHORT).show();
+                    Log.d("Attività: ", "a piedi");
+                }
+                else{
+                    Toast.makeText(MainActivity.this, "in macchina", Toast.LENGTH_SHORT).show();
+                    Log.d("Attività: ", "in macchina");
+                }
+
             }
         }
     };
@@ -88,11 +110,14 @@ public class MainActivity extends AppCompatActivity {
 
         Toast.makeText(getApplicationContext(), "START", Toast.LENGTH_SHORT).show();
 
+        //inizializzo di default l'attività iniziale come walking
+        recognizedActivity = WALKING;
+
         //inizializzo l'intentFilter per i risultati dell'Activity Recognition
         IntentFilter intentFilter = new IntentFilter("ACTION_ACTIVITY_RECOGNITION_RESULT");
         //setto il receiver per ottenere i risultati della misurazione
         registerReceiver(activityRecognitionReceiver, intentFilter);
-        
+
         // Richiedi le attività rilevate
         activityRecognitionClient.requestActivityUpdates(1000, pendingIntent);
     }

@@ -28,12 +28,13 @@ public class ActivityRecognitionService extends IntentService {
 
             String activityName = getActivityName(activityType);
 
+            //da eliminare message successivamente, ora utile solo per test
             String message = "Attività rilevata: " + activityName + " (Confidenza: " + confidence + ")";
             Log.d("ActivityRecognition", message);
 
             //showActivityToast(message);
 
-            sendActivityRecognitionResultToMainActivity(message);
+            sendActivityRecognitionResultToMainActivity(activityName);
 
             Log.d("Method", "called");
         }
@@ -48,22 +49,11 @@ public class ActivityRecognitionService extends IntentService {
     }
 
 
-    private void showActivityToast(String message) {
-        Handler handler = new Handler(Looper.getMainLooper());
-
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
 
     private String getActivityName(int activityType) {
         switch (activityType) {
             case DetectedActivity.IN_VEHICLE:
-                return "In veicolo";
+                return "In macchina";
             case DetectedActivity.ON_BICYCLE:
                 return "In bicicletta";
             case DetectedActivity.ON_FOOT:
