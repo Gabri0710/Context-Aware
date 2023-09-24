@@ -28,6 +28,7 @@ public class ActivityRecognitionService extends IntentService {
             Log.d("ActivityRecognition", message);
 
         }
+
     }
 
     private String getActivityName(int activityType) {
