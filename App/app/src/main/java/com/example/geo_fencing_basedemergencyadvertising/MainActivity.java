@@ -11,6 +11,7 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -86,6 +87,12 @@ public class MainActivity extends AppCompatActivity {
         );
 
         Toast.makeText(getApplicationContext(), "START", Toast.LENGTH_SHORT).show();
+
+        //inizializzo l'intentFilter per i risultati dell'Activity Recognition
+        IntentFilter intentFilter = new IntentFilter("ACTION_ACTIVITY_RECOGNITION_RESULT");
+        //setto il receiver per ottenere i risultati della misurazione
+        registerReceiver(activityRecognitionReceiver, intentFilter);
+        
         // Richiedi le attività rilevate
         activityRecognitionClient.requestActivityUpdates(1000, pendingIntent);
     }
