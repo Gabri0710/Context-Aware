@@ -8,6 +8,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -29,6 +31,19 @@ public class MainActivity extends AppCompatActivity {
 
     // Launcher per la richiesta di autorizzazione. Nelle nuove versioni di android bisogna richiederla anche da codice e non solo nel manifest
     private ActivityResultLauncher<String> requestPermissionLauncher;
+
+
+    private BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction() != null && intent.getAction().equals("ACTION_ACTIVITY_RECOGNITION_RESULT")) {
+                String activityMessage = intent.getStringExtra("ACTIVITY_MESSAGE");
+                Toast.makeText(MainActivity.this, activityMessage, Toast.LENGTH_SHORT).show();
+                Log.d("RICEZIONE", "confermata");
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

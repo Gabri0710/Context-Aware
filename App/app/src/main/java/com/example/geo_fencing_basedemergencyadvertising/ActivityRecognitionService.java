@@ -31,12 +31,22 @@ public class ActivityRecognitionService extends IntentService {
             String message = "Attività rilevata: " + activityName + " (Confidenza: " + confidence + ")";
             Log.d("ActivityRecognition", message);
 
-            showActivityToast(message);
+            //showActivityToast(message);
 
+            sendActivityRecognitionResultToMainActivity(message);
 
+            Log.d("Method", "called");
         }
 
     }
+
+
+    private void sendActivityRecognitionResultToMainActivity(String message) {
+        Intent intent = new Intent("ACTION_ACTIVITY_RECOGNITION_RESULT");
+        intent.putExtra("ACTIVITY_MESSAGE", message);
+        sendBroadcast(intent);
+    }
+
 
     private void showActivityToast(String message) {
         Handler handler = new Handler(Looper.getMainLooper());
