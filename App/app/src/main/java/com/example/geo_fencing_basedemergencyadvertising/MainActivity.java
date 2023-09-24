@@ -5,7 +5,10 @@ import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import android.Manifest;
+
 
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -21,11 +24,16 @@ import android.widget.Toast;
 import com.google.android.gms.location.ActivityRecognition;
 import com.google.android.gms.location.ActivityRecognitionClient;
 import com.google.android.gms.location.ActivityRecognitionResult;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.Task;
 
 public class MainActivity extends AppCompatActivity {
     // Launcher per la richiesta di autorizzazione. Nelle nuove versioni di android bisogna richiederla anche da codice e non solo nel manifest
     private ActivityResultLauncher<String> requestPermissionLauncher;
+    private ActivityResultLauncher<String> locationPermissionLauncher;
 
     //definisco client riconoscimento attività
     private ActivityRecognitionClient activityRecognitionClient;
@@ -37,18 +45,25 @@ public class MainActivity extends AppCompatActivity {
     private static final int WALKING = 1;
     private static final int IN_VEHICLE = 2;
 
+    //definisco variabile che memorizzerà l'attività riconosciuta
     private int recognizedActivity;
 
+    //definisco oggetti che mi servono per l'ottenimento della posizione
+    private FusedLocationProviderClient fusedLocationClient;
+    private LocationRequest locationRequest;
+    private LocationCallback locationCallback;
 
+
+    //definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
     private BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction() != null && intent.getAction().equals("ACTION_ACTIVITY_RECOGNITION_RESULT")) {
                 String activityMessage = intent.getStringExtra("ACTIVITY_MESSAGE");
-                if(activityMessage=="In macchina"){
+                if(activityMessage.equals("In macchina")){
                     recognizedActivity = IN_VEHICLE;
                 }
-                else if(activityMessage=="Camminare"||activityMessage=="A piedi"){
+                else if(activityMessage.equals("Camminare")||activityMessage.equals("A piedi")){
                     recognizedActivity = WALKING;
                 }
 
@@ -78,17 +93,31 @@ public class MainActivity extends AppCompatActivity {
                     if (isGranted) {
                         // L'utente ha concesso l'autorizzazione ACTIVITY_RECOGNITION
                         // Si può procedere con il riconoscimento dell'attività
-                        Log.d("AUTORIZZAZIONE", "Concessa");
-                        Toast.makeText(getApplicationContext(), "AUTORIZZAZIONE concessa", Toast.LENGTH_SHORT).show();
+                        Log.d("AUTORIZZAZIONE ActivityRecognition", "Concessa");
                     } else {
                         // L'utente ha negato l'autorizzazione ACTIVITY_RECOGNITION
                         // Da gestire di conseguenza (ad esempio, informare l'utente o chiudere l'app)
-                        Toast.makeText(getApplicationContext(), "AUTORIZZAZIONE negata", Toast.LENGTH_SHORT).show();
+                        Log.d("AUTORIZZAZIONE ActivityRecognition", "Negata");
                     }
                 });
 
+        locationPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+                isGranted -> {
+                    if (isGranted) {
+                        // L'utente ha concesso l'autorizzazione ACCESS_FINE_LOCATION
+                        // Puoi procedere con le operazioni relative alla posizione
+                        Log.d("AUTORIZZAZIONE Location", "Concessa");
 
-        //controllo se stiamo usando l'app in device con nuove versioni di android
+                    } else {
+                        // L'utente ha negato l'autorizzazione ACCESS_FINE_LOCATION
+                        // Da gestire di conseguenza (ad esempio, informare l'utente o chiudere l'app)
+                        Log.d("AUTORIZZAZIONE Location", "Negata");
+                    }
+                }
+        );
+
+
+        //controllo se stiamo usando l'app in device con nuove versioni di android (bisogna richiedere i permessi via codice se così)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             //controllo se non ho fornito l'autorizzazione precedentemente
             if (ContextCompat.checkSelfPermission(this, "android.permission.ACTIVITY_RECOGNITION")
@@ -96,7 +125,17 @@ public class MainActivity extends AppCompatActivity {
                 //in caso, richiamo il launcher per la richiesta di autorizzazione
                 requestPermissionLauncher.launch("android.permission.ACTIVITY_RECOGNITION");
             }
+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED){
+
+                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
+            }
         }
+
+
+
+
 
         //inizializzo activityRecognition e pendingIntent
         activityRecognitionClient = ActivityRecognition.getClient(this);
@@ -108,10 +147,20 @@ public class MainActivity extends AppCompatActivity {
                 PendingIntent.FLAG_MUTABLE
         );
 
+
+        // Inizializzo il FusedLocationProviderClient
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        // Configurazione delle richieste di posizione
+        locationRequest = new LocationRequest()
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setInterval(5000); // Intervallo di aggiornamento della posizione in millisecondi
+
         Toast.makeText(getApplicationContext(), "START", Toast.LENGTH_SHORT).show();
 
         //inizializzo di default l'attività iniziale come walking
-        recognizedActivity = WALKING;
+        //recognizedActivity = WALKING;
+        recognizedActivity = IN_VEHICLE;
 
         //inizializzo l'intentFilter per i risultati dell'Activity Recognition
         IntentFilter intentFilter = new IntentFilter("ACTION_ACTIVITY_RECOGNITION_RESULT");
