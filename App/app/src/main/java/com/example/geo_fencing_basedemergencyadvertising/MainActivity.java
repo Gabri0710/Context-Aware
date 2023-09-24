@@ -141,7 +141,6 @@ public class MainActivity extends AppCompatActivity {
                         // L'utente ha concesso l'autorizzazione ACCESS_FINE_LOCATION
                         // Puoi procedere con le operazioni relative alla posizione
                         Log.d("AUTORIZZAZIONE Location", "Concessa");
-                        //requestLocationUpdates(); // Avvia l'aggiornamento della posizione
                     } else {
                         // L'utente ha negato l'autorizzazione ACCESS_FINE_LOCATION
                         // Da gestire di conseguenza (ad esempio, informare l'utente o chiudere l'app)
