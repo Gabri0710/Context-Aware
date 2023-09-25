@@ -1,7 +1,5 @@
 package com.example.geo_fencing_basedemergencyadvertising;
 
-import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
@@ -30,13 +28,11 @@ import android.widget.Toast;
 
 import com.google.android.gms.location.ActivityRecognition;
 import com.google.android.gms.location.ActivityRecognitionClient;
-import com.google.android.gms.location.ActivityRecognitionResult;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.Task;
 
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
@@ -48,6 +44,14 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 
 import java.util.ArrayList;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+import com.example.geo_fencing_basedemergencyadvertising.SendPositionService;
+
 
 public class MainActivity extends AppCompatActivity {
     // Launcher per la richiesta di autorizzazione. Nelle nuove versioni di android bisogna richiederla anche da codice e non solo nel manifest
@@ -83,6 +87,12 @@ public class MainActivity extends AppCompatActivity {
     private MapView mapView;
     private ItemizedIconOverlay<OverlayItem> itemizedIconOverlay;
     private MyLocationNewOverlay myLocationOverlay;
+
+    //intero che mi serve nell'aggiornamento della mappa per capire se centrarla o no
+    private int center;
+
+    //interfaccia per invio dati a backend
+    private SendPositionService sendPositionService;
 
     //definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
     private BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
@@ -255,30 +265,77 @@ public class MainActivity extends AppCompatActivity {
         // Abilita il provider di posizione GPS
         mapView.setTileSource(TileSourceFactory.MAPNIK);
 
-        // Imposto la posizione a quella rilevata precedentemente
+        // Imposto la posizione a una iniziale fittizia per evitare valori null iniziali e lo setto come centro della mappa
         GeoPoint startPoint = new GeoPoint(41.8902, 12.4922);
         mapView.getController().setCenter(startPoint);
         mapView.getController().setZoom(15);
 
         // Aggiungi un overlay di posizione
-        MyLocationNewOverlay myLocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider(getApplicationContext()), mapView);
+        myLocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider(getApplicationContext()), mapView);
         myLocationOverlay.enableMyLocation();
         mapView.getOverlays().add(myLocationOverlay);
 
 
-        Drawable defaultMarker = getResources().getDrawable(R.drawable.marker);
-        defaultMarker.setBounds(0, 0, 1, 1);
-        // Crea un overlay dei marcatori
-        // Crea un overlay dei marcatori con il marker predefinito di OSM
+        // Creo un overlay dei marcatori con il marker predefinito di OSM
         itemizedIconOverlay = new ItemizedIconOverlay<>(new ArrayList<>(),
                 getResources().getDrawable(org.osmdroid.library.R.drawable.marker_default), null, getApplicationContext());
         mapView.getOverlays().add(itemizedIconOverlay);
+
+        //flag che uso per centrare la vista, mi serve successivamente, momentaneo
+        center = 1;
+
+
+
+
+        //ROBA PER INVIO DATI A BACKEND
+        //localhost, viene indicato così, sto provando a inviare informazioni a un backend
+        String BASE_URL = "https://10.0.2.2:5000";
+        // Inizializza Retrofit
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        // Crea un'istanza dell'interfaccia ApiService
+        sendPositionService = retrofit.create(SendPositionService.class);
 
 
         //richiedo aggiornamenti posizione
         requestLocationUpdates();
 
 
+    }
+
+
+    // Metodo per inviare la posizione al backend Flask
+    private void sendLocationToBackend(double latitude, double longitude) {
+
+
+        // Effettuo la richiesta HTTP POST. uso l'istanza dell'interfaccia SendPositionService (dove è gestito la richiesta POST)
+        Call<Void> call = sendPositionService.uploadLocation(latitude, longitude);
+
+        call.enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    Log.d("S,", "success");
+                    // La posizione è stata inviata con successo
+                    // Puoi gestire la risposta del backend qui se necessario
+                } else {
+                    Log.d("S,", "failure");
+                    // Gestisci un errore nella risposta del backend (es. codice di errore HTTP)
+                    // Puoi mostrare un messaggio di errore all'utente o registrare l'errore
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                //Log.e("Retrofit", "Errore durante la richiesta HTTP", t);
+                //t.printStackTrace();
+                // Gestisci un errore nella richiesta HTTP (es. problema di connessione)
+                // Puoi mostrare un messaggio di errore all'utente o registrare l'errore
+            }
+        });
     }
 
     // Metodo per richiedere gli aggiornamenti della posizione
@@ -289,14 +346,30 @@ public class MainActivity extends AppCompatActivity {
                 if (locationResult != null && locationResult.getLastLocation() != null) {
                     location = locationResult.getLastLocation();
                     //ottengo la posizione e faccio qualcosa
-                    Log.d("POSIZIONE", "Lat: " + location.getLatitude() + ", Long: " + location.getLongitude());
+                    //Log.d("POSIZIONE", "Lat: " + location.getLatitude() + ", Long: " + location.getLongitude());
 
+                    //invio la posizione al backend (prova). Chiamo il metodo sendLocationToBackend
+                    sendLocationToBackend(location.getLatitude(), location.getLongitude());
+                    Log.d("Invio", "effettuato");
+
+                    //creo la currentlocation (per la mappa)
                     GeoPoint currentLocation = new GeoPoint(location.getLatitude(), location.getLongitude());
 
-                    mapView.getController().setCenter(currentLocation);
+                    Log.d("POSIZIONE", "Lat: " + currentLocation.getLatitude() + ", Long: " + currentLocation.getLongitude());
+
+                    //uso questo flag per capire se è la prima volta che richiediamo l'aggiornamento della posizione
+                    //se sì, aggiorno la posizione a quella rilevata (ho dovuto impostare un valore qualsiasi per l'inizializzazione per
+                    //evitare un riferimento null alla location). Se center è uguale a 1, ovvero è la prima volta che entro, aggiorno la posizione
+                    //e centro la mappa sulla posizione rilevata. Successivamente lo incremento perché se no la mappa verrebbe centrata a ogni
+                    //chiamata di questo metodo per l'aggiornamento della posizione e non mi permetterebbe di muovermi per la mappa
+                    if(center==1){
+                        mapView.getController().setCenter(currentLocation);
+                    }
+
+                    center+=1;
 
 
-                    // Crea un oggetto OverlayItem con le tue coordinate
+                    // Creo un oggetto OverlayItem (marker) con le coordinate rilevate
                     OverlayItem myLocationMarker = new OverlayItem("La mia posizione", "Descrizione della posizione", currentLocation);
 
                     // Aggiungi il marker all'overlay dei marcatori
