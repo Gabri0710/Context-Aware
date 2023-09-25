@@ -288,8 +288,9 @@ public class MainActivity extends AppCompatActivity {
 
 
         //ROBA PER INVIO DATI A BACKEND
-        //localhost, viene indicato così, sto provando a inviare informazioni a un backend
-        String BASE_URL = "https://10.0.2.2:5000";
+
+        //url del localhost da emulatore. Se da telefono vero sostituire con 127.0.0.1:5000
+        String BASE_URL = "http://10.0.2.2:5000";
         // Inizializza Retrofit
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
