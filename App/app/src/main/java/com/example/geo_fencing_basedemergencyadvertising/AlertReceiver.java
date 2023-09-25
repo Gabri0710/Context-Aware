@@ -11,8 +11,8 @@ import androidx.core.app.NotificationCompat;
 import java.util.ArrayList;
 
 public class AlertReceiver extends BroadcastReceiver {
-    private String alertChannelId;
-    private int notificationIdCounter = 0;
+    private final String alertChannelId; // Id del canale delle notifiche
+    private int notificationIdCounter = 0; // Contatore id notifiche, serve per avere id univoci
 
     public AlertReceiver(String channelId){
         this.alertChannelId = channelId;

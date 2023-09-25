@@ -19,7 +19,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -50,52 +49,54 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
-import com.example.geo_fencing_basedemergencyadvertising.SendPositionService;
 
 
 public class MainActivity extends AppCompatActivity {
-    // Launcher per la richiesta di autorizzazione. Nelle nuove versioni di android bisogna richiederla anche da codice e non solo nel manifest
-    private ActivityResultLauncher<String> requestPermissionLauncher;
 
+    // Launcher per la richiesta di autorizzazione.
+    // Nelle nuove versioni di android bisogna richiederla anche da codice e non solo nel manifest
+    private ActivityResultLauncher<String> activityRecognitionPermissionLauncher;
     private ActivityResultLauncher<String> locationPermissionLauncher;
+    private ActivityResultLauncher<String> requestNotificationPermissionLauncher;
 
-    private ActivityResultLauncher<String> requestPermissionNotificationLauncher;
-
-    //definisco client riconoscimento attività
+    // definisco client riconoscimento attività
     private ActivityRecognitionClient activityRecognitionClient;
 
-    //definisco PendingIntent per ricevere i risultati del riconoscimento
-    private PendingIntent pendingIntent;
+    // definisco variabile che memorizzerà l'attività riconosciuta
+    private int recognizedActivity;
 
-    //definisco le attività alla quale sono interessato: WALKING e IN_VEHICLE
+    // definisco le attività alla quale sono interessato: WALKING e IN_VEHICLE
     private static final int WALKING = 1;
     private static final int IN_VEHICLE = 2;
 
-    //definisco variabile che memorizzerà l'attività riconosciuta
-    private int recognizedActivity;
+    // definisco PendingIntent per ricevere i risultati del riconoscimento
+    private PendingIntent pendingIntent;
 
-    //definisco oggetti che mi servono per l'ottenimento della posizione
+    // definisco oggetti che mi servono per l'ottenimento della posizione
     private FusedLocationProviderClient fusedLocationClient;
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
 
+    // definisco nuovo canale di notifiche, per gli alert che arriveranno dal backend
     private NotificationChannel alertChannel;
+
+    // definisco un broadcast receiver personalizzato per ricevere gli intent degli alert
+    // dai questi intent il broadcast receiver gestirà la creazione e l'invio di notifiche
     private AlertReceiver alertReceiver;
 
     private Location location;
-
     private MapView mapView;
     private ItemizedIconOverlay<OverlayItem> itemizedIconOverlay;
     private MyLocationNewOverlay myLocationOverlay;
 
-    //intero che mi serve nell'aggiornamento della mappa per capire se centrarla o no
+    // intero che mi serve nell'aggiornamento della mappa per capire se centrarla o no
     private int center;
 
-    //interfaccia per invio dati a backend
+    // interfaccia per invio dati a backend
     private SendPositionService sendPositionService;
 
-    //definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
-    private BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
+    // definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
+    private final BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction() != null && intent.getAction().equals("ACTION_ACTIVITY_RECOGNITION_RESULT")) {
@@ -106,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
                     recognizedActivity = WALKING;
                 }
 
-                //if da eliminare successivamente. Utile adesso solo per test.
+                //TODO: if da eliminare successivamente. Utile adesso solo per test.
                 //Successivamente la variabile recognizedActivity ci servirà solo quando dovremo inviare l'attività rilevata al backend
                 if (recognizedActivity == 1) {
                     Toast.makeText(MainActivity.this, "walking", Toast.LENGTH_SHORT).show();
@@ -150,8 +151,9 @@ public class MainActivity extends AppCompatActivity {
             throw new RuntimeException("SDK VERSION BELOW 26");
         }
 
-        // Inizializzo il launcher per la richiesta di autorizzazione. Viene richiamato se non abbiamo concesso l'autorizzazione per il riconoscimento delle attività
-        requestPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+        // Inizializzo il launcher per la richiesta di autorizzazione.
+        // Viene richiamato se non abbiamo concesso l'autorizzazione per il riconoscimento delle attività
+        activityRecognitionPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
                     if (isGranted) {
                         // L'utente ha concesso l'autorizzazione ACTIVITY_RECOGNITION
@@ -164,6 +166,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
+        // Inizializzo il launcher per la richiesta di autorizzazione ACCESS_FINE_LOCATION
         locationPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
                     if (isGranted) {
@@ -179,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
         );
 
         // Inizializzo il launcher per la richiesta di autorizzazione POST_NOTIFICATIONS
-        requestPermissionNotificationLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+        requestNotificationPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
                     if (isGranted) {
                         // L'utente ha concesso l'autorizzazione POST_NOTIFICATIONS
@@ -195,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Controlla se il permesso POST_NOTIFICATIONS non è stato concesso e richiedilo
         if (ContextCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
-            requestPermissionNotificationLauncher.launch("android.permission.POST_NOTIFICATIONS");
+            requestNotificationPermissionLauncher.launch("android.permission.POST_NOTIFICATIONS");
         }
 
         // Controllo se stiamo usando l'app su un dispositivo con Android 10 o superiore
@@ -203,12 +206,15 @@ public class MainActivity extends AppCompatActivity {
             // Controllo se non ho fornito l'autorizzazione ACTIVITY_RECOGNITION precedentemente
             if (ContextCompat.checkSelfPermission(this, "android.permission.ACTIVITY_RECOGNITION") != PackageManager.PERMISSION_GRANTED) {
                 // In caso contrario, richiamo il launcher per la richiesta di autorizzazione ACTIVITY_RECOGNITION
-                requestPermissionLauncher.launch("android.permission.ACTIVITY_RECOGNITION");
+                activityRecognitionPermissionLauncher.launch("android.permission.ACTIVITY_RECOGNITION");
             }
 
 
             // Controllo se non ho fornito l'autorizzazione ACCESS_FINE_LOCATION precedentemente
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.checkSelfPermission(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                    && ActivityCompat.checkSelfPermission(this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 // In caso contrario, richiamo il launcher per la richiesta di autorizzazione ACCESS_FINE_LOCATION
                 locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
             }
@@ -254,11 +260,31 @@ public class MainActivity extends AppCompatActivity {
         Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
         sendBroadcast(alertIntent);
 
-
-
         // Inizializza la configurazione di OpenStreetMap
         Configuration.getInstance().load(getApplicationContext(), getSharedPreferences("OpenStreetMap", MODE_PRIVATE));
 
+        // inizializzazione mapView
+        initMapView();
+
+        //ROBA PER INVIO DATI A BACKEND
+
+        //url del localhost da emulatore. Se da telefono vero sostituire con 127.0.0.1:5000
+        String BASE_URL = "http://10.0.2.2:5000";
+        // Inizializza Retrofit
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        // Crea un'istanza dell'interfaccia ApiService
+        sendPositionService = retrofit.create(SendPositionService.class);
+
+        //richiedo aggiornamenti posizione
+        requestLocationUpdates();
+
+    }
+
+    private void initMapView() {
         // Ottieni la view della mappa dal layout XML
         mapView = findViewById(R.id.mapView);
 
@@ -284,33 +310,11 @@ public class MainActivity extends AppCompatActivity {
         //flag che uso per centrare la vista, mi serve successivamente, momentaneo
         center = 1;
 
-
-
-
-        //ROBA PER INVIO DATI A BACKEND
-
-        //url del localhost da emulatore. Se da telefono vero sostituire con 127.0.0.1:5000
-        String BASE_URL = "http://10.0.2.2:5000";
-        // Inizializza Retrofit
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        // Crea un'istanza dell'interfaccia ApiService
-        sendPositionService = retrofit.create(SendPositionService.class);
-
-
-        //richiedo aggiornamenti posizione
-        requestLocationUpdates();
-
-
     }
 
 
     // Metodo per inviare la posizione al backend Flask
     private void sendLocationToBackend(double latitude, double longitude) {
-
 
         // Effettuo la richiesta HTTP POST. uso l'istanza dell'interfaccia SendPositionService (dove è gestito la richiesta POST)
         Call<Void> call = sendPositionService.uploadLocation(latitude, longitude);
@@ -319,11 +323,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<Void> call, Response<Void> response) {
                 if (response.isSuccessful()) {
-                    Log.d("S,", "success");
+                    Log.d("SEND LOCATION TO BACKEND,", "success");
                     // La posizione è stata inviata con successo
                     // Puoi gestire la risposta del backend qui se necessario
                 } else {
-                    Log.d("S,", "failure");
+                    Log.d("SEND LOCATION TO BACKEND,", "failure");
                     // Gestisci un errore nella risposta del backend (es. codice di errore HTTP)
                     // Puoi mostrare un messaggio di errore all'utente o registrare l'errore
                 }
@@ -369,7 +373,6 @@ public class MainActivity extends AppCompatActivity {
 
                     center+=1;
 
-
                     // Creo un oggetto OverlayItem (marker) con le coordinate rilevate
                     OverlayItem myLocationMarker = new OverlayItem("La mia posizione", "Descrizione della posizione", currentLocation);
 
@@ -395,8 +398,6 @@ public class MainActivity extends AppCompatActivity {
 
         //Richiamo requestLocationUpdates. Vuole per forza sto if sopra qui, è messo anche prima ma non gli va bene, poi vedrò perché
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
-
-
 
     }
 }

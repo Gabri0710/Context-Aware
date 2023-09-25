@@ -19,7 +19,6 @@ public class ActivityRecognitionService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        Log.d("Ciao", "ciao");
         if (ActivityRecognitionResult.hasResult(intent)) {
             ActivityRecognitionResult result = ActivityRecognitionResult.extractResult(intent);
             DetectedActivity mostProbableActivity = result.getMostProbableActivity();
@@ -28,10 +27,9 @@ public class ActivityRecognitionService extends IntentService {
 
             String activityName = getActivityName(activityType);
 
-            //da eliminare message successivamente, ora utile solo per test
+            //TODO: da eliminare message successivamente, ora utile solo per test
             String message = "Attività rilevata: " + activityName + " (Confidenza: " + confidence + ")";
             Log.d("ActivityRecognition", message);
-
             //showActivityToast(message);
 
             sendActivityRecognitionResultToMainActivity(activityName);
