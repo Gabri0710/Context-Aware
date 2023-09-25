@@ -1,9 +1,13 @@
 package com.example.geo_fencing_basedemergencyadvertising;
 
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContract;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
@@ -43,6 +47,7 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -55,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Launcher per la richiesta di autorizzazione.
     // Nelle nuove versioni di android bisogna richiederla anche da codice e non solo nel manifest
-    private ActivityResultLauncher<String> activityRecognitionPermissionLauncher;
+    private ActivityResultLauncher<String[]> requestPermissionsLauncher;
     private ActivityResultLauncher<String> locationPermissionLauncher;
     private ActivityResultLauncher<String> requestNotificationPermissionLauncher;
 
@@ -127,98 +132,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Creazione del canale delle notifiche per gli alert
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            /* Verifica se il dispositivo Android in esecuzione ha una versione maggiore o uguale
-               a Android 8.0 (API 26) perché i canali delle notifiche sono supportati solo in questa versione in poi */
-            String channelId = "alertChannelId";
-            CharSequence channelName = "ALERT CHANNEL";
-            String channelDescription = "Canale utile per la ricezione delle notifiche di nuovi alert";
-            int importance = NotificationManager.IMPORTANCE_HIGH;
+        initAlertNotificationChannel();
 
-            alertChannel = new NotificationChannel(channelId, channelName, importance);
-            alertChannel.setDescription(channelDescription);
+        initRequestPermissionsLauncher();
 
-            // Ottieni il NotificationManager
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-
-            // Crea il canale
-            notificationManager.createNotificationChannel(alertChannel);
-
-            // Creo il receiver degli alert e setto l'ìd del canale
-            alertReceiver = new AlertReceiver(alertChannel.getId());
-        } else {
-            throw new RuntimeException("SDK VERSION BELOW 26");
-        }
-
-        // Inizializzo il launcher per la richiesta di autorizzazione.
-        // Viene richiamato se non abbiamo concesso l'autorizzazione per il riconoscimento delle attività
-        activityRecognitionPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
-                isGranted -> {
-                    if (isGranted) {
-                        // L'utente ha concesso l'autorizzazione ACTIVITY_RECOGNITION
-                        // Si può procedere con il riconoscimento dell'attività
-                        Log.d("AUTORIZZAZIONE ActivityRecognition", "Concessa");
-                    } else {
-                        // L'utente ha negato l'autorizzazione ACTIVITY_RECOGNITION
-                        // Da gestire di conseguenza (ad esempio, informare l'utente o chiudere l'app)
-                        Log.d("AUTORIZZAZIONE ActivityRecognition", "Negata");
-                    }
-                });
-
-        // Inizializzo il launcher per la richiesta di autorizzazione ACCESS_FINE_LOCATION
-        locationPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
-                isGranted -> {
-                    if (isGranted) {
-                        // L'utente ha concesso l'autorizzazione ACCESS_FINE_LOCATION
-                        // Puoi procedere con le operazioni relative alla posizione
-                        Log.d("AUTORIZZAZIONE Location", "Concessa");
-                    } else {
-                        // L'utente ha negato l'autorizzazione ACCESS_FINE_LOCATION
-                        // Da gestire di conseguenza (ad esempio, informare l'utente o chiudere l'app)
-                        Log.d("AUTORIZZAZIONE Location", "Negata");
-                    }
-                }
-        );
-
-        // Inizializzo il launcher per la richiesta di autorizzazione POST_NOTIFICATIONS
-        requestNotificationPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
-                isGranted -> {
-                    if (isGranted) {
-                        // L'utente ha concesso l'autorizzazione POST_NOTIFICATIONS
-                        // Si può procedere con le operazioni relative alle notifiche
-                        Log.d("AUTORIZZAZIONE NOTIFICHE", "Concessa");
-                        Toast.makeText(getApplicationContext(), "AUTORIZZAZIONE NOTIFICHE concessa", Toast.LENGTH_SHORT).show();
-                    } else {
-                        // L'utente ha negato l'autorizzazione POST_NOTIFICATIONS
-                        // Da gestire di conseguenza (ad esempio, informare l'utente o chiudere l'app)
-                        Toast.makeText(getApplicationContext(), "AUTORIZZAZIONE NOTIFICHE negata", Toast.LENGTH_SHORT).show();
-                    }
-                });
-
-        // Controlla se il permesso POST_NOTIFICATIONS non è stato concesso e richiedilo
-        if (ContextCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
-            requestNotificationPermissionLauncher.launch("android.permission.POST_NOTIFICATIONS");
-        }
-
-        // Controllo se stiamo usando l'app su un dispositivo con Android 10 o superiore
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Controllo se non ho fornito l'autorizzazione ACTIVITY_RECOGNITION precedentemente
-            if (ContextCompat.checkSelfPermission(this, "android.permission.ACTIVITY_RECOGNITION") != PackageManager.PERMISSION_GRANTED) {
-                // In caso contrario, richiamo il launcher per la richiesta di autorizzazione ACTIVITY_RECOGNITION
-                activityRecognitionPermissionLauncher.launch("android.permission.ACTIVITY_RECOGNITION");
-            }
-
-
-            // Controllo se non ho fornito l'autorizzazione ACCESS_FINE_LOCATION precedentemente
-            if (ActivityCompat.checkSelfPermission(this,
-                    Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                    && ActivityCompat.checkSelfPermission(this,
-                    Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                // In caso contrario, richiamo il launcher per la richiesta di autorizzazione ACCESS_FINE_LOCATION
-                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
-            }
-        }
+        checkAllPermissions();
 
         // Inizializzo activityRecognition e pendingIntent
         activityRecognitionClient = ActivityRecognition.getClient(this);
@@ -284,6 +202,130 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * Metodo usato per creare ed inizializzare il canale delle notifiche per gli alert
+     * che verranno inviati dal server
+     * */
+    private void initAlertNotificationChannel() {
+        // Creazione del canale delle notifiche per gli alert
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            /* Verifica se il dispositivo Android in esecuzione ha una versione maggiore o uguale
+               a Android 8.0 (API 26) perché i canali delle notifiche sono supportati solo in questa versione in poi */
+            String channelId = "alertChannelId";
+            CharSequence channelName = "ALERT CHANNEL";
+            String channelDescription = "Canale utile per la ricezione delle notifiche di nuovi alert";
+            int importance = NotificationManager.IMPORTANCE_HIGH;
+
+            alertChannel = new NotificationChannel(channelId, channelName, importance);
+            alertChannel.setDescription(channelDescription);
+
+            // Ottieni il NotificationManager
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+
+            // Crea il canale
+            notificationManager.createNotificationChannel(alertChannel);
+
+            // Creo il receiver degli alert e setto l'ìd del canale
+            alertReceiver = new AlertReceiver(alertChannel.getId());
+        } else {
+            throw new RuntimeException("PROBABLY SDK VERSION BELOW 26");
+        }
+    }
+
+    /**
+     * Metodo usato per inizializzare il launcher usato per le varie richieste di permessi
+     * */
+    private void initRequestPermissionsLauncher() {
+        // Inizializzo il launcher per la richiesta di autorizzazione.
+        // Viene richiamato se non abbiamo concesso l'autorizzazione per il riconoscimento delle attività
+        requestPermissionsLauncher =
+                registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
+                        permissions -> {
+                    boolean allPermissionsGranted = true;
+                    for (String permission : permissions.keySet()) {
+                        if (!permissions.get(permission)) {
+                            allPermissionsGranted = false;
+                            break;
+                        }
+                    }
+
+                    if (allPermissionsGranted) {
+                        // Tutti i permessi sono stati concessi, continua con il funzionamento dell'app
+                        Log.d("AUTORIZZAZIONI", "CONCESSE");
+                    } else {
+                        // Almeno uno dei permessi è stato negato, puoi informare l'utente o gestire di conseguenza
+                        Log.d("AUTORIZZAZIONI", "NON (TUTTE O PARTE DI ESSE) CONCESSE");
+                    }
+                });
+
+// TODO: TOASK serve davvero avere un launcher dedicato per ogni autorizzazione?
+
+//        // Inizializzo il launcher per la richiesta di autorizzazione ACCESS_FINE_LOCATION
+//        locationPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+//                isGranted -> {
+//                    if (isGranted) {
+//                        // L'utente ha concesso l'autorizzazione ACCESS_FINE_LOCATION
+//                        // Puoi procedere con le operazioni relative alla posizione
+//                        Log.d("AUTORIZZAZIONE Location", "Concessa");
+//                    } else {
+//                        // L'utente ha negato l'autorizzazione ACCESS_FINE_LOCATION
+//                        // Da gestire di conseguenza (ad esempio, informare l'utente o chiudere l'app)
+//                        Log.d("AUTORIZZAZIONE Location", "Negata");
+//                    }
+//                }
+//        );
+//
+//        // Inizializzo il launcher per la richiesta di autorizzazione POST_NOTIFICATIONS
+//        requestNotificationPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+//                isGranted -> {
+//                    if (isGranted) {
+//                        // L'utente ha concesso l'autorizzazione POST_NOTIFICATIONS
+//                        // Si può procedere con le operazioni relative alle notifiche
+//                        Log.d("AUTORIZZAZIONE NOTIFICHE", "Concessa");
+////                        Toast.makeText(getApplicationContext(), "AUTORIZZAZIONE NOTIFICHE concessa", Toast.LENGTH_SHORT).show();
+//                    } else {
+//                        // L'utente ha negato l'autorizzazione POST_NOTIFICATIONS
+//                        // Da gestire di conseguenza (ad esempio, informare l'utente o chiudere l'app)
+//                        Log.d("AUTORIZZAZIONE NOTIFICHE", "Negata");
+////                        Toast.makeText(getApplicationContext(), "AUTORIZZAZIONE NOTIFICHE negata", Toast.LENGTH_SHORT).show();
+//                    }
+//                });
+    }
+
+    /**
+     * Metodo utilizzato per verificare la richiesta che tutti i permessi siano stati concessi.
+     * Viene verificato dapprima se si usa l'app su un dispositivo con Android 10 o superiore:
+     * in caso positivo allora viene controllato che tutti i permessi necessari siano garantiti;
+     * se non sono garantiti, vengono richiesti.
+     * */
+    private void checkAllPermissions() {
+
+        // Controllo se stiamo usando l'app su un dispositivo con Android 10 o superiore
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            String[] permissionsToCheck = {
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    "android.permission.ACTIVITY_RECOGNITION",
+                    "android.permission.POST_NOTIFICATIONS",
+            };
+
+            List<String> permissionsToRequest = new ArrayList<>();
+            for (String permission : permissionsToCheck) {
+                if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+                    permissionsToRequest.add(permission);
+                }
+            }
+            if(permissionsToRequest.size() > 0){
+                String[] permissionsArray = permissionsToRequest.toArray(new String[0]);
+                requestPermissionsLauncher.launch(permissionsArray);
+            }
+        }
+
+    }
+
+    /**
+     * Metodo usato per creare, inizializzare e visualizzare la MapView nell'applicazione.
+     * */
     private void initMapView() {
         // Ottieni la view della mappa dal layout XML
         mapView = findViewById(R.id.mapView);
@@ -313,7 +355,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // Metodo per inviare la posizione al backend Flask
+    /**
+     * Metodo per inviare la posizione al backend Flask
+     * */
     private void sendLocationToBackend(double latitude, double longitude) {
 
         // Effettuo la richiesta HTTP POST. uso l'istanza dell'interfaccia SendPositionService (dove è gestito la richiesta POST)
@@ -343,7 +387,9 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // Metodo per richiedere gli aggiornamenti della posizione
+    /**
+     * Metodo per richiedere gli aggiornamenti della posizione
+     */
     private void requestLocationUpdates() {
         locationCallback = new LocationCallback() {
             @Override
@@ -400,4 +446,6 @@ public class MainActivity extends AppCompatActivity {
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
 
     }
+
+
 }
