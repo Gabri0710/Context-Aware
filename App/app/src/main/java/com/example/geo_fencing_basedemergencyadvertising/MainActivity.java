@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 
 
+
 import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -20,6 +21,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -35,6 +37,17 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.Task;
+
+import org.osmdroid.config.Configuration;
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
+import org.osmdroid.util.GeoPoint;
+import org.osmdroid.views.MapView;
+import org.osmdroid.views.overlay.ItemizedIconOverlay;
+import org.osmdroid.views.overlay.OverlayItem;
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
+import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
+
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
     // Launcher per la richiesta di autorizzazione. Nelle nuove versioni di android bisogna richiederla anche da codice e non solo nel manifest
@@ -64,6 +77,12 @@ public class MainActivity extends AppCompatActivity {
 
     private NotificationChannel alertChannel;
     private AlertReceiver alertReceiver;
+
+    private Location location;
+
+    private MapView mapView;
+    private ItemizedIconOverlay<OverlayItem> itemizedIconOverlay;
+    private MyLocationNewOverlay myLocationOverlay;
 
     //definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
     private BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
@@ -201,7 +220,7 @@ public class MainActivity extends AppCompatActivity {
         // Configurazione delle richieste di posizione
         locationRequest = new LocationRequest()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(5000); // Intervallo di aggiornamento della posizione in millisecondi
+                .setInterval(15000); // Intervallo di aggiornamento della posizione in millisecondi
 
         Toast.makeText(getApplicationContext(), "START", Toast.LENGTH_SHORT).show();
 
@@ -225,8 +244,41 @@ public class MainActivity extends AppCompatActivity {
         Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
         sendBroadcast(alertIntent);
 
+
+
+        // Inizializza la configurazione di OpenStreetMap
+        Configuration.getInstance().load(getApplicationContext(), getSharedPreferences("OpenStreetMap", MODE_PRIVATE));
+
+        // Ottieni la view della mappa dal layout XML
+        mapView = findViewById(R.id.mapView);
+
+        // Abilita il provider di posizione GPS
+        mapView.setTileSource(TileSourceFactory.MAPNIK);
+
+        // Imposto la posizione a quella rilevata precedentemente
+        GeoPoint startPoint = new GeoPoint(41.8902, 12.4922);
+        mapView.getController().setCenter(startPoint);
+        mapView.getController().setZoom(15);
+
+        // Aggiungi un overlay di posizione
+        MyLocationNewOverlay myLocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider(getApplicationContext()), mapView);
+        myLocationOverlay.enableMyLocation();
+        mapView.getOverlays().add(myLocationOverlay);
+
+
+        Drawable defaultMarker = getResources().getDrawable(R.drawable.marker);
+        defaultMarker.setBounds(0, 0, 1, 1);
+        // Crea un overlay dei marcatori
+        // Crea un overlay dei marcatori con il marker predefinito di OSM
+        itemizedIconOverlay = new ItemizedIconOverlay<>(new ArrayList<>(),
+                getResources().getDrawable(org.osmdroid.library.R.drawable.marker_default), null, getApplicationContext());
+        mapView.getOverlays().add(itemizedIconOverlay);
+
+
         //richiedo aggiornamenti posizione
         requestLocationUpdates();
+
+
     }
 
     // Metodo per richiedere gli aggiornamenti della posizione
@@ -235,9 +287,23 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 if (locationResult != null && locationResult.getLastLocation() != null) {
-                    Location location = locationResult.getLastLocation();
+                    location = locationResult.getLastLocation();
                     //ottengo la posizione e faccio qualcosa
                     Log.d("POSIZIONE", "Lat: " + location.getLatitude() + ", Long: " + location.getLongitude());
+
+                    GeoPoint currentLocation = new GeoPoint(41.8902, 12.4922);
+
+                    //mapView.getController().setCenter(currentLocation);
+
+
+                    // Crea un oggetto OverlayItem con le tue coordinate
+                    OverlayItem myLocationMarker = new OverlayItem("La mia posizione", "Descrizione della posizione", currentLocation);
+
+                    // Aggiungi il marker all'overlay dei marcatori
+                    itemizedIconOverlay.addItem(myLocationMarker);
+
+                    // Aggiorna la mappa
+                    mapView.invalidate();
                 }
             }
         };
@@ -255,5 +321,8 @@ public class MainActivity extends AppCompatActivity {
 
         //Richiamo requestLocationUpdates. Vuole per forza sto if sopra qui, è messo anche prima ma non gli va bene, poi vedrò perché
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
+
+
+
     }
 }
