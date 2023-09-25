@@ -291,9 +291,9 @@ public class MainActivity extends AppCompatActivity {
                     //ottengo la posizione e faccio qualcosa
                     Log.d("POSIZIONE", "Lat: " + location.getLatitude() + ", Long: " + location.getLongitude());
 
-                    GeoPoint currentLocation = new GeoPoint(41.8902, 12.4922);
+                    GeoPoint currentLocation = new GeoPoint(location.getLatitude(), location.getLongitude());
 
-                    //mapView.getController().setCenter(currentLocation);
+                    mapView.getController().setCenter(currentLocation);
 
 
                     // Crea un oggetto OverlayItem con le tue coordinate
