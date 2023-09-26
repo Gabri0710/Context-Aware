@@ -336,11 +336,11 @@ public class MainActivity extends AppCompatActivity {
         // Imposto la posizione a una iniziale fittizia per evitare valori null iniziali e lo setto come centro della mappa
         GeoPoint startPoint = new GeoPoint(41.8902, 12.4922);
         mapView.getController().setCenter(startPoint);
-        mapView.getController().setZoom(15);
+        mapView.getController().setZoom(20);
 
         // Aggiungi un overlay di posizione
         myLocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider(getApplicationContext()), mapView);
-        myLocationOverlay.enableMyLocation();
+        myLocationOverlay.enableMyLocation();                     //mette l'omino sulla mappa
         mapView.getOverlays().add(myLocationOverlay);
 
 
@@ -420,10 +420,10 @@ public class MainActivity extends AppCompatActivity {
                     center+=1;
 
                     // Creo un oggetto OverlayItem (marker) con le coordinate rilevate
-                    OverlayItem myLocationMarker = new OverlayItem("La mia posizione", "Descrizione della posizione", currentLocation);
+                    //OverlayItem myLocationMarker = new OverlayItem("La mia posizione", "Descrizione della posizione", currentLocation);
 
                     // Aggiungi il marker all'overlay dei marcatori
-                    itemizedIconOverlay.addItem(myLocationMarker);
+                    //itemizedIconOverlay.addItem(myLocationMarker);
 
                     // Aggiorna la mappa
                     mapView.invalidate();
