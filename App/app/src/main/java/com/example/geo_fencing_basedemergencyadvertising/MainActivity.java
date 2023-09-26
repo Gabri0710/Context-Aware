@@ -200,7 +200,7 @@ public class MainActivity extends AppCompatActivity {
         sendPositionService = retrofit.create(SendPositionService.class);
 
         drawGeofance();
-        
+
         //richiedo aggiornamenti posizione
         requestLocationUpdates();
 
@@ -455,18 +455,22 @@ public class MainActivity extends AppCompatActivity {
     private void drawGeofance(){
         //punti che definiscono il geofance
         ArrayList<GeoPoint> polygonPoints = new ArrayList<>();
-        polygonPoints.add(new GeoPoint(44.493760, 11.343032)); // Aggiungi i vertici del tuo poligono
-        polygonPoints.add(new GeoPoint(44.493760, 11.343437));
-        polygonPoints.add(new GeoPoint(44.494072, 11.343437));
-        polygonPoints.add(new GeoPoint(44.494072, 11.343032));
-        polygonPoints.add(new GeoPoint(44.493760, 11.343032));
+        polygonPoints.add(new GeoPoint(44.493760, 11.343032)); // Vertice 1
+        polygonPoints.add(new GeoPoint(44.493760, 11.343234)); // Vertice 2
+        polygonPoints.add(new GeoPoint(44.493911, 11.343437)); // Vertice 3
+        polygonPoints.add(new GeoPoint(44.494072, 11.343437)); // Vertice 4
+        polygonPoints.add(new GeoPoint(44.494222, 11.343234)); // Vertice 5
+        polygonPoints.add(new GeoPoint(44.494222, 11.343032)); // Vertice 6
+        polygonPoints.add(new GeoPoint(44.493760, 11.343032)); // Torna al Vertice 1 per chiudere il poligono
+
+
 
 
         // Creazione del poligono
         Polygon polygon = new Polygon();
         polygon.setPoints(polygonPoints);
-        polygon.setFillColor(0x220000FF); // Colore di riempimento con alpha
-        polygon.setStrokeColor(Color.BLUE); // Colore del bordo
+        polygon.setFillColor(0x22FF0000); // Colore di riempimento con alpha
+        polygon.setStrokeColor(Color.RED); // Colore del bordo
         polygon.setStrokeWidth(2); // Larghezza del bordo
 
         mapView.getOverlayManager().add(polygon);
