@@ -25,8 +25,10 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -49,6 +51,7 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import retrofit2.Call;
@@ -60,9 +63,10 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final int REQUEST_ENABLE_GPS = 123;
     // Launcher per la richiesta di autorizzazione.
     // Nelle nuove versioni di android bisogna richiederla anche da codice e non solo nel manifest
-    private ActivityResultLauncher<String[]> requestPermissionsLauncher;
+    private static ActivityResultLauncher<String[]> requestPermissionsLauncher;
     private ActivityResultLauncher<String> locationPermissionLauncher;
     private ActivityResultLauncher<String> requestNotificationPermissionLauncher;
 
@@ -83,6 +87,9 @@ public class MainActivity extends AppCompatActivity {
     private FusedLocationProviderClient fusedLocationClient;
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
+
+    // definisco manager per la gestione di attivare il gps se è spento
+    private LocationManagerImpl locationManager;
 
     // definisco nuovo canale di notifiche, per gli alert che arriveranno dal backend
     private NotificationChannel alertChannel;
@@ -254,6 +261,20 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     if (allPermissionsGranted) {
+
+
+                        // Verifica se il GPS è attualmente disattivato
+                        locationManager = new LocationManagerImpl(this); // Passa il contesto dell'app
+                        locationManager.checkAndRequestLocationUpdates(); // ascolta aggiornamenti
+
+//                        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+//                        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+//                            // Il GPS è disattivato, quindi chiedi all'utente di attivarlo
+//                            Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+//                            startActivityForResult(intent, REQUEST_ENABLE_GPS);
+//                        } else {
+//                            // Il GPS è già attivato, puoi procedere con le operazioni relative alla posizione
+//                        }
                         // Tutti i permessi sono stati concessi, continua con il funzionamento dell'app
                         Log.d("AUTORIZZAZIONI", "CONCESSE");
                     } else {
@@ -261,39 +282,6 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("AUTORIZZAZIONI", "NON (TUTTE O PARTE DI ESSE) CONCESSE");
                     }
                 });
-
-// TODO: TOASK serve davvero avere un launcher dedicato per ogni autorizzazione?
-
-//        // Inizializzo il launcher per la richiesta di autorizzazione ACCESS_FINE_LOCATION
-//        locationPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
-//                isGranted -> {
-//                    if (isGranted) {
-//                        // L'utente ha concesso l'autorizzazione ACCESS_FINE_LOCATION
-//                        // Puoi procedere con le operazioni relative alla posizione
-//                        Log.d("AUTORIZZAZIONE Location", "Concessa");
-//                    } else {
-//                        // L'utente ha negato l'autorizzazione ACCESS_FINE_LOCATION
-//                        // Da gestire di conseguenza (ad esempio, informare l'utente o chiudere l'app)
-//                        Log.d("AUTORIZZAZIONE Location", "Negata");
-//                    }
-//                }
-//        );
-//
-//        // Inizializzo il launcher per la richiesta di autorizzazione POST_NOTIFICATIONS
-//        requestNotificationPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
-//                isGranted -> {
-//                    if (isGranted) {
-//                        // L'utente ha concesso l'autorizzazione POST_NOTIFICATIONS
-//                        // Si può procedere con le operazioni relative alle notifiche
-//                        Log.d("AUTORIZZAZIONE NOTIFICHE", "Concessa");
-////                        Toast.makeText(getApplicationContext(), "AUTORIZZAZIONE NOTIFICHE concessa", Toast.LENGTH_SHORT).show();
-//                    } else {
-//                        // L'utente ha negato l'autorizzazione POST_NOTIFICATIONS
-//                        // Da gestire di conseguenza (ad esempio, informare l'utente o chiudere l'app)
-//                        Log.d("AUTORIZZAZIONE NOTIFICHE", "Negata");
-////                        Toast.makeText(getApplicationContext(), "AUTORIZZAZIONE NOTIFICHE negata", Toast.LENGTH_SHORT).show();
-//                    }
-//                });
     }
 
     /**
