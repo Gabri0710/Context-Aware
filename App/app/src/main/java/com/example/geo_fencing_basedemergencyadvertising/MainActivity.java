@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -43,6 +44,7 @@ import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.ItemizedIconOverlay;
 import org.osmdroid.views.overlay.OverlayItem;
+import org.osmdroid.views.overlay.Polygon;
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 
@@ -197,6 +199,8 @@ public class MainActivity extends AppCompatActivity {
         // Crea un'istanza dell'interfaccia ApiService
         sendPositionService = retrofit.create(SendPositionService.class);
 
+        drawGeofance();
+        
         //richiedo aggiornamenti posizione
         requestLocationUpdates();
 
@@ -445,6 +449,27 @@ public class MainActivity extends AppCompatActivity {
         //Richiamo requestLocationUpdates. Vuole per forza sto if sopra qui, è messo anche prima ma non gli va bene, poi vedrò perché
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
 
+    }
+
+
+    private void drawGeofance(){
+        //punti che definiscono il geofance
+        ArrayList<GeoPoint> polygonPoints = new ArrayList<>();
+        polygonPoints.add(new GeoPoint(44.493760, 11.343032)); // Aggiungi i vertici del tuo poligono
+        polygonPoints.add(new GeoPoint(44.493760, 11.343437));
+        polygonPoints.add(new GeoPoint(44.494072, 11.343437));
+        polygonPoints.add(new GeoPoint(44.494072, 11.343032));
+        polygonPoints.add(new GeoPoint(44.493760, 11.343032));
+
+
+        // Creazione del poligono
+        Polygon polygon = new Polygon();
+        polygon.setPoints(polygonPoints);
+        polygon.setFillColor(0x220000FF); // Colore di riempimento con alpha
+        polygon.setStrokeColor(Color.BLUE); // Colore del bordo
+        polygon.setStrokeWidth(2); // Larghezza del bordo
+
+        mapView.getOverlayManager().add(polygon);
     }
 
 
