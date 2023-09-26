@@ -11,6 +11,7 @@ db = SQLAlchemy(app)
 
 i = 0
 
+
 # Definisco il modello per la tabella degli utenti
 class UserCoordinate(db.Model):
     __table_args__ = {'schema': 'Coordinate'}  # Imposta lo schema qui
@@ -21,22 +22,17 @@ class UserCoordinate(db.Model):
 
 @app.route('/')
 def hello_world():
-    return '<h1>Benvenuto</h1>'
+    return '<h1>GEOFECE EMERGENCY</h1>'
 
 @app.route('/upload_location', methods=['POST'])
 def upload_location():
     try:
         # Ottiengo i dati di posizione dalla richiesta POST
         data = request.get_json()
-
         
-
         # Estrai le coordinate latitudine e longitudine dai dati
         latitude = data.get('latitude')
         longitude = data.get('longitude')
-
-        
-        
 
         #ottengo l'username dell'utente (DA CAMBIARE, MOMENTANEO PER TEST)
         user_id = i
@@ -46,20 +42,13 @@ def upload_location():
 
         # Creo un oggetto Point con le coordinate
         coordinates = f'POINT({longitude} {latitude})'
-        #coordinates = "POINT("
-        #coordinates+=str(longitude)
-        #coordinates+=str(latitude)
-        #coordinates+=")"
-
         
 
-        # Crea un nuovo record nella tabella
+        # Creo un nuovo record nella tabella
         new_user_coordinate = UserCoordinate(user_id=user_id, posizione=coordinates)
 
-        print("TESTTTTTTTTTTTTTTTTTTT")
-
+        # Provo a inserire il record
         try:
-            # Codice per l'inserimento del record
             db.session.add(new_user_coordinate)
             db.session.commit()
             print("Record inserito con successo")
@@ -67,10 +56,8 @@ def upload_location():
             print(f"Errore durante l'inserimento: {str(e)}")
         
 
-        # Stampa le coordinate a schermo
-        print(f"Latitude: {latitude}, Longitude: {longitude}")
+        #print(f"Latitude: {latitude}, Longitude: {longitude}")
 
-        # Puoi elaborare ulteriormente i dati o inviare una risposta al client Android se necessario
         #i+=1
         return jsonify({"message": "Dati di posizione ricevuti correttamente."}), 200
 
