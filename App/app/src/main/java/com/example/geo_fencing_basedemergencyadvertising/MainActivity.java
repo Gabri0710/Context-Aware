@@ -1,13 +1,9 @@
 package com.example.geo_fencing_basedemergencyadvertising;
 
 import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContract;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
@@ -28,7 +24,6 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -51,7 +46,6 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import retrofit2.Call;
@@ -64,6 +58,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_ENABLE_GPS = 123;
+    private static final int LOCATION_SETTINGS_REQUEST_CODE = 124;
+
     // Launcher per la richiesta di autorizzazione.
     // Nelle nuove versioni di android bisogna richiederla anche da codice e non solo nel manifest
     private static ActivityResultLauncher<String[]> requestPermissionsLauncher;
@@ -89,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
     private LocationCallback locationCallback;
 
     // definisco manager per la gestione di attivare il gps se è spento
-    private LocationManagerImpl locationManager;
+    private LocationManagerImpl locationManagerImpl;
 
     // definisco nuovo canale di notifiche, per gli alert che arriveranno dal backend
     private NotificationChannel alertChannel;
@@ -148,6 +144,10 @@ public class MainActivity extends AppCompatActivity {
         initRequestPermissionsLauncher();
 
         checkAllPermissions();
+
+        // Verifica se il GPS è attualmente disattivato
+        locationManagerImpl = new LocationManagerImpl(this); // Passa il contesto dell'app
+        locationManagerImpl.checkAndRequestLocationUpdates(); // ascolta aggiornamenti
 
         // Inizializzo activityRecognition e pendingIntent
         activityRecognitionClient = ActivityRecognition.getClient(this);
@@ -217,6 +217,39 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        if (locationManagerImpl.getLocationManager().isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            // Il GPS è stato abilitato, puoi chiudere il dialog qui se è ancora aperto
+            if (locationManagerImpl.getLocationDialog() != null && locationManagerImpl.getLocationDialog().isShowing()) {
+                locationManagerImpl.getLocationDialog().dismiss();
+            }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == LOCATION_SETTINGS_REQUEST_CODE) {
+            // Il codice di richiesta corrisponde alle impostazioni di localizzazione
+            if (locationManagerImpl.getLocationManager().isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                // Il GPS è stato abilitato, puoi chiudere il dialog qui se è ancora aperto
+                if (locationManagerImpl.getLocationDialog() != null && locationManagerImpl.getLocationDialog().isShowing()) {
+                    locationManagerImpl.getLocationDialog().dismiss();
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Esegui le operazioni necessarie per rilevare la chiusura definitiva dell'app
+        // Questo metodo verrà chiamato quando l'Activity viene distrutta
+    }
+
     /**
      * Metodo usato per creare ed inizializzare il canale delle notifiche per gli alert
      * che verranno inviati dal server
@@ -256,36 +289,22 @@ public class MainActivity extends AppCompatActivity {
         requestPermissionsLauncher =
                 registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
                         permissions -> {
-                    boolean allPermissionsGranted = true;
-                    for (String permission : permissions.keySet()) {
-                        if (!permissions.get(permission)) {
-                            allPermissionsGranted = false;
-                            break;
-                        }
-                    }
+                            boolean allPermissionsGranted = true;
+                            for (String permission : permissions.keySet()) {
+                                if (!permissions.get(permission)) {
+                                    allPermissionsGranted = false;
+                                    break;
+                                }
+                            }
 
-                    if (allPermissionsGranted) {
-
-
-                        // Verifica se il GPS è attualmente disattivato
-                        locationManager = new LocationManagerImpl(this); // Passa il contesto dell'app
-                        locationManager.checkAndRequestLocationUpdates(); // ascolta aggiornamenti
-
-//                        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-//                        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-//                            // Il GPS è disattivato, quindi chiedi all'utente di attivarlo
-//                            Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-//                            startActivityForResult(intent, REQUEST_ENABLE_GPS);
-//                        } else {
-//                            // Il GPS è già attivato, puoi procedere con le operazioni relative alla posizione
-//                        }
-                        // Tutti i permessi sono stati concessi, continua con il funzionamento dell'app
-                        Log.d("AUTORIZZAZIONI", "CONCESSE");
-                    } else {
-                        // Almeno uno dei permessi è stato negato, puoi informare l'utente o gestire di conseguenza
-                        Log.d("AUTORIZZAZIONI", "NON (TUTTE O PARTE DI ESSE) CONCESSE");
-                    }
-                });
+                            if (allPermissionsGranted) {
+                                // Tutti i permessi sono stati concessi, continua con il funzionamento dell'app
+                                Log.d("AUTORIZZAZIONI", "CONCESSE");
+                            } else {
+                                // Almeno uno dei permessi è stato negato, puoi informare l'utente o gestire di conseguenza
+                                Log.d("AUTORIZZAZIONI", "NON (TUTTE O PARTE DI ESSE) CONCESSE");
+                            }
+                        });
     }
 
     /**

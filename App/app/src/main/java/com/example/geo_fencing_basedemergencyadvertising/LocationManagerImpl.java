@@ -1,22 +1,18 @@
 package com.example.geo_fencing_basedemergencyadvertising;
 
-import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
-import static android.Manifest.permission.ACCESS_FINE_LOCATION;
-
 import static androidx.core.app.ActivityCompat.finishAffinity;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.provider.Settings;
 
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.app.ActivityCompat;
 
 /**
  * Classe utilizzata per l'implementazione di un location manager personalizzato
@@ -25,15 +21,27 @@ import androidx.core.app.ActivityCompat;
  * e verrà reindirizzato alle impostazioni di localizzazione del dispositivo
  * */
 public class LocationManagerImpl {
+
     private LocationManager locationManager;
     private Context context;
+    private AlertDialog locationDialog;
 
     public LocationManagerImpl(Context context) {
         this.context = context;
         locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
     }
 
+    public LocationManager getLocationManager() {
+        return locationManager;
+    }
+
+    public AlertDialog getLocationDialog() {
+        return locationDialog;
+    }
+
+
     // Metodo per controllare lo stato del GPS e richiedere l'attivazione se è disattivato
+    @SuppressLint("MissingPermission")
     public void checkAndRequestLocationUpdates() {
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             // Il GPS è disattivato
@@ -59,7 +67,7 @@ public class LocationManagerImpl {
             @Override
             public void onProviderEnabled(String provider) {
                 // Il provider di localizzazione è stato abilitato
-                // Do nothing
+
             }
 
             @Override
@@ -71,20 +79,6 @@ public class LocationManagerImpl {
             }
         };
 
-        // Richiedi aggiornamenti sulla posizione
-        if (ActivityCompat.checkSelfPermission(this.context,
-                ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this.context,
-                ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
 
     }
@@ -97,19 +91,21 @@ public class LocationManagerImpl {
         builder.setPositiveButton("Sì", (dialog, which) -> {
             // L'utente ha scelto "Sì"
             // chiudi la finestra di dialogo e apri le impostazioni di localizzazione
-            dialog.dismiss();
             Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-            this.context.startActivity(intent);
+            context.startActivity(intent);
+            dialog.dismiss();
         });
         builder.setNegativeButton("No", (dialog, which) -> {
             // L'utente ha scelto "No", chiudi la finestra di dialogo
             dialog.dismiss();
             // chiudi l'app
-            finishAffinity((Activity) this.context);
+            finishAffinity((Activity) context);
         });
 
-        // Mostra la finestra di dialogo
-        builder.create().show();
+        // Mostra la finestra di dialogo e assegnala a locationDialog
+        locationDialog = builder.create();
+        locationDialog.show();
     }
+
 }
 
