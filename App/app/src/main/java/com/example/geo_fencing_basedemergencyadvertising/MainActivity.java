@@ -109,6 +109,8 @@ public class MainActivity extends AppCompatActivity {
     // interfaccia per invio dati a backend
     private SendPositionService sendPositionService;
 
+    private LocationData locationdata;
+
     // definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
     private final BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
         @Override
@@ -205,6 +207,8 @@ public class MainActivity extends AppCompatActivity {
 
         // Crea un'istanza dell'interfaccia ApiService
         sendPositionService = retrofit.create(SendPositionService.class);
+
+        locationdata = new LocationData();
 
         drawGeofance();
 
@@ -352,8 +356,9 @@ public class MainActivity extends AppCompatActivity {
      * */
     private void sendLocationToBackend(double latitude, double longitude) {
 
+        locationdata.setPosition(latitude, longitude);
         // Effettuo la richiesta HTTP POST. uso l'istanza dell'interfaccia SendPositionService (dove è gestito la richiesta POST)
-        Call<Void> call = sendPositionService.uploadLocation(latitude, longitude);
+        Call<Void> call = sendPositionService.uploadLocation(locationdata);
 
         call.enqueue(new Callback<Void>() {
             @Override
