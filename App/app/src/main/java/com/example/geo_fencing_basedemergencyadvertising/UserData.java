@@ -1,10 +1,12 @@
 package com.example.geo_fencing_basedemergencyadvertising;
 
-public class LocationData {
+public class UserData {
     private double latitude;
     private double longitude;
 
-    public LocationData() {
+    private String recognizedActivity;
+
+    public UserData() {
     }
 
     public double getLatitude() {
@@ -15,9 +17,13 @@ public class LocationData {
         return longitude;
     }
 
-    public void setPosition(double latitude, double longitude){
+    public void setData(double latitude, double longitude, int recognizedActivity){
         this.latitude = latitude;
         this.longitude = longitude;
+        if(recognizedActivity==1)
+            this.recognizedActivity = "WALKING";
+        else
+            this.recognizedActivity = "CAR";
     }
 
 

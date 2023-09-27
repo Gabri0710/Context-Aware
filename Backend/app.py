@@ -33,12 +33,14 @@ def upload_location():
         # Estrai le coordinate latitudine e longitudine dai dati
         latitude = data.get('latitude')
         longitude = data.get('longitude')
+        activity = data.get('recognizedActivity')
 
         #ottengo l'username dell'utente (DA CAMBIARE, MOMENTANEO PER TEST)
         user_id = i
 
         print(latitude)
         print(longitude)
+        print(activity)
 
         # Creo un oggetto Point con le coordinate
         coordinates = f'POINT({longitude} {latitude})'
