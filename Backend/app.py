@@ -9,7 +9,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost/geofance'
 db = SQLAlchemy(app)
 
-i = 0
+i = 1
 
 
 # Definisco il modello per la tabella degli utenti
@@ -18,6 +18,7 @@ class UserCoordinate(db.Model):
     __tablename__ = 'geofance-coordinate'  # Il nome della tabella senza lo schema
     user_id = db.Column(db.Integer, primary_key=True)
     posizione = db.Column(Geometry(geometry_type='POINT', srid=4326))
+    activity = db.Column(db.String(7))
 
 
 @app.route('/')
@@ -47,7 +48,7 @@ def upload_location():
         
 
         # Creo un nuovo record nella tabella
-        new_user_coordinate = UserCoordinate(user_id=user_id, posizione=coordinates)
+        new_user_coordinate = UserCoordinate(user_id=user_id, posizione=coordinates, activity=activity)
 
         # Provo a inserire il record
         try:
