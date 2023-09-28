@@ -2,6 +2,9 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from geoalchemy2 import Geometry
 from sqlalchemy import create_engine
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import db
 
 app = Flask(__name__)
 
@@ -11,6 +14,15 @@ db = SQLAlchemy(app)
 
 i = "user0"
 user_used = None
+
+
+# Inizializzo l'app Firebase nel tuo backend
+cred = credentials.Certificate("C:\\Users\\racit\\Desktop\\chiave firebase\\geo-fencing-based-emergency-firebase-adminsdk-1yviz-e39c6f8807.json")
+firebase_admin.initialize_app(cred, {
+    'databaseURL': 'https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/'
+})
+
+notifiche_ref = firebase_admin.db.reference('/notifiche')
 
 
 # Definisco il modello per la tabella che contiene activity e posizione degli utenti
@@ -145,6 +157,36 @@ def upload_location():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+@app.route('/firebase_update')
+def firebase_update():
+    # Dati della notifica con coordinate geografiche
+    nuova_notifica = {
+    'testo': 'Emergenza! Terremoto in corso.',
+    'latitudine': 123.456,
+    'longitudine': 789.012,
+    }
+
+    # Scrivi la notifica nel database sotto il nodo "notifiche"
+    
+    nuova_notifica_ref = notifiche_ref.push()
+    nuova_notifica_ref.set(nuova_notifica)
+    
+    return "<h1>Insert successfull</h1>"
+
+
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug= False)
-    #app.run(debug=True)
+    #app.run(host='0.0.0.0', port=8080, debug= False)
+    app.run(debug=True)
+
+
+
+
+
+
+
+
+
+
+
