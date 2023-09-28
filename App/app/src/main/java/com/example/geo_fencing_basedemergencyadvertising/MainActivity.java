@@ -166,12 +166,27 @@ public class MainActivity extends AppCompatActivity {
             public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
                 // Questo metodo viene chiamato quando viene aggiunto un nuovo figlio al nodo "notifiche"
                 // Puoi gestire qui la notifica o l'azione da intraprendere quando viene aggiunto un nuovo valore.
-                Log.d("ALLARME", "Nuovo valore aggiunto: " + dataSnapshot.getKey());
+
+                String identificativo = dataSnapshot.getKey();
+                String testo = dataSnapshot.child("testo").getValue(String.class);
+
+
+                //double latitudine = dataSnapshot.child("latitudine").getValue(Double.class);
+                //double longitudine = dataSnapshot.child("longitudine").getValue(Double.class);
+
+                Log.d("ALLARME", "Nuovo valore aggiunto: " +  dataSnapshot.getKey() + " " + testo);
             }
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
-                // Questo metodo viene chiamato quando un figlio esistente nel nodo "notifiche" viene modificato
+                String identificativo = dataSnapshot.getKey();
+                String testo = dataSnapshot.child("testo").getValue(String.class);
+
+
+                //double latitudine = dataSnapshot.child("latitudine").getValue(Double.class);
+                //double longitudine = dataSnapshot.child("longitudine").getValue(Double.class);
+
+                Log.d("ALLARME", "Nuovo valore aggiunto: " +  dataSnapshot.getKey() + " " + testo);
             }
 
             @Override

@@ -171,6 +171,11 @@ def firebase_update():
     
     nuova_notifica_ref = notifiche_ref.push()
     nuova_notifica_ref.set(nuova_notifica)
+    #customKey = "il_tuo_identificatore_personale"  # Sostituisci con l'identificatore desiderato
+    
+
+    # Scrivi la notifica nel database sotto il nodo "notifiche" con la chiave personalizzata
+    #notifiche_ref.put(customKey, nuova_notifica)
     
     return "<h1>Insert successfull</h1>"
 
