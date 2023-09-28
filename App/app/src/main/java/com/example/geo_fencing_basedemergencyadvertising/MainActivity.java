@@ -167,26 +167,21 @@ public class MainActivity extends AppCompatActivity {
                 // Questo metodo viene chiamato quando viene aggiunto un nuovo figlio al nodo "notifiche"
                 // Puoi gestire qui la notifica o l'azione da intraprendere quando viene aggiunto un nuovo valore.
 
-                String identificativo = dataSnapshot.getKey();
-                String testo = dataSnapshot.child("testo").getValue(String.class);
-
-
-                //double latitudine = dataSnapshot.child("latitudine").getValue(Double.class);
-                //double longitudine = dataSnapshot.child("longitudine").getValue(Double.class);
-
-                Log.d("ALLARME", "Nuovo valore aggiunto: " +  dataSnapshot.getKey() + " " + testo);
             }
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
+                //INSERITO QUI PERCHE PRIMA VIENE INSERITO L'IDENTIFICATIVO E POI VIENE AGGIORNATO CON
+                //TESTO, LATITUDINE E LONGITUDINE. DA GESTIRE QUI SE NO VENGONO VISTI COME null
+
                 String identificativo = dataSnapshot.getKey();
                 String testo = dataSnapshot.child("testo").getValue(String.class);
+                Double latitudine = dataSnapshot.child("latitudine").getValue(Double.class);
+                Double longitudine = dataSnapshot.child("longitudine").getValue(Double.class);
 
 
-                //double latitudine = dataSnapshot.child("latitudine").getValue(Double.class);
-                //double longitudine = dataSnapshot.child("longitudine").getValue(Double.class);
-
-                Log.d("ALLARME", "Nuovo valore aggiunto: " +  dataSnapshot.getKey() + " " + testo);
+                Log.d("ALLARME", "Nuovo valore aggiunto: " +  dataSnapshot.getKey() + " " + testo + ". Latitudine: " + latitudine + ", Longitudine: " + longitudine);
+                Toast.makeText(getApplicationContext(), testo, Toast.LENGTH_SHORT).show();
             }
 
             @Override
