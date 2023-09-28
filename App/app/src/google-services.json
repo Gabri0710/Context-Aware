@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "81880397195",
+    "firebase_url": "https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app",
     "project_id": "geo-fencing-based-emergency",
     "storage_bucket": "geo-fencing-based-emergency.appspot.com"
   },

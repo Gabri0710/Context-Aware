@@ -163,7 +163,7 @@ def firebase_update():
     # Dati della notifica con coordinate geografiche
     nuova_notifica = {
     'testo': 'Emergenza! Terremoto in corso.',
-    'latitudine': 123.456,
+    'latitudine': 123.457,
     'longitudine': 789.012,
     }
 

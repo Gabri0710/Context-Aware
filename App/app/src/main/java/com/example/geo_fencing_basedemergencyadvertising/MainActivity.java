@@ -34,6 +34,12 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
@@ -53,7 +59,6 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
-
 
 public class MainActivity extends AppCompatActivity {
 
@@ -107,6 +112,11 @@ public class MainActivity extends AppCompatActivity {
 
     private UserData userData;
 
+    FirebaseDatabase database;
+    DatabaseReference myRef;
+
+
+
     // definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
     private final BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
         @Override
@@ -144,6 +154,43 @@ public class MainActivity extends AppCompatActivity {
         initRequestPermissionsLauncher();
 
         checkAllPermissions();
+
+        database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/notifiche");
+
+
+        Log.d("Firebase Reference", "Percorso della referenza: " + myRef.toString());
+
+        myRef.addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
+                // Questo metodo viene chiamato quando viene aggiunto un nuovo figlio al nodo "notifiche"
+                // Puoi gestire qui la notifica o l'azione da intraprendere quando viene aggiunto un nuovo valore.
+                Log.d("ALLARME", "Nuovo valore aggiunto: " + dataSnapshot.getKey());
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
+                // Questo metodo viene chiamato quando un figlio esistente nel nodo "notifiche" viene modificato
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+                // Questo metodo viene chiamato quando un figlio viene rimosso dal nodo "notifiche"
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String previousChildName) {
+                // Questo metodo viene chiamato quando un figlio nel nodo "notifiche" viene spostato
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // Gestisci eventuali errore
+                Log.d("ALLARME", "ERRORE: " + databaseError.getMessage());
+            }
+        });
+
 
         // Verifica se il GPS è attualmente disattivato
         locationManagerImpl = new LocationManagerImpl(this); // Passa il contesto dell'app
@@ -210,6 +257,7 @@ public class MainActivity extends AppCompatActivity {
 
         userData = new UserData();
 
+
         drawGeofence();
 
         //richiedo aggiornamenti posizione
@@ -227,6 +275,8 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
