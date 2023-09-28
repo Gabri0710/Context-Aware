@@ -210,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
 
         userData = new UserData();
 
-        drawGeofance();
+        drawGeofence();
 
         //richiedo aggiornamenti posizione
         requestLocationUpdates();
@@ -464,7 +464,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void drawGeofance(){
+    private void drawGeofence(){
         //punti che definiscono il geofance
         ArrayList<GeoPoint> polygonPoints = new ArrayList<>();
         polygonPoints.add(new GeoPoint(44.493760, 11.343032)); // Vertice 1
