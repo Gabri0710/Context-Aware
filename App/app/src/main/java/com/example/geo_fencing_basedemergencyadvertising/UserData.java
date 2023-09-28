@@ -5,6 +5,9 @@ public class UserData {
     private double latitude;
     private double longitude;
 
+    //only for test
+    private int i;
+
     private String recognizedActivity;
 
     public UserData() {
@@ -22,10 +25,16 @@ public class UserData {
         this.username = "USER-TEST";
         this.latitude = latitude;
         this.longitude = longitude;
+        this.i = 0;
         if(recognizedActivity==1)
             this.recognizedActivity = "WALKING";
         else
             this.recognizedActivity = "CAR";
+    }
+
+    public void increaseCont(){
+        this.username+= Integer.toString(i);
+        i+=1;
     }
 
 
