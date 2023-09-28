@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "81880397195",
+    "project_id": "geo-fencing-based-emergency",
+    "storage_bucket": "geo-fencing-based-emergency.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:81880397195:android:48116d161fde288d392b8e",
+        "android_client_info": {
+          "package_name": "com.example.geo_fencing_basedemergencyadvertising"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD442mYRBoF7JtRpipnipvBmCW7yK-GaAI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
