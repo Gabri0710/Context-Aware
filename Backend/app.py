@@ -160,11 +160,11 @@ def upload_location():
 
 @app.route('/firebase_update')
 def firebase_update():
-    # Dati della notifica con coordinate geografiche
+    # lista di liste contenente coppie latitudine, longitudine del geofence dell'allarme
+    coordinate_points = [[44.493760, 11.343032], [44.493760,11.343234], [44.493911, 11.343437], [44.494072, 11.343437], [44.494222, 11.343234], [44.494222, 11.343032]]
     nuova_notifica = {
     'testo': 'Emergenza! Terremoto in corso.',
-    'latitudine': 123.457,
-    'longitudine': 789.012,
+    'coordinate': coordinate_points
     }
 
     # Scrivi la notifica nel database sotto il nodo "notifiche"
@@ -184,14 +184,3 @@ def firebase_update():
 if __name__ == '__main__':
     #app.run(host='0.0.0.0', port=8080, debug= False)
     app.run(debug=True)
-
-
-
-
-
-
-
-
-
-
-

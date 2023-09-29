@@ -39,6 +39,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
 
 import org.osmdroid.config.Configuration;
@@ -176,12 +177,26 @@ public class MainActivity extends AppCompatActivity {
 
                 String identificativo = dataSnapshot.getKey();
                 String testo = dataSnapshot.child("testo").getValue(String.class);
-                Double latitudine = dataSnapshot.child("latitudine").getValue(Double.class);
-                Double longitudine = dataSnapshot.child("longitudine").getValue(Double.class);
+
+                //classe di utilità fornita da Firebase SDK per Java per aiutare nella deserializzazione dei dati da Firebase Realtime Database.
+                //È utilizzato quando si desidera deserializzare dati generici, come liste ecc, perché firebase non riconosce automaticamente il tipo di dati
+                //quindi, lo specifichiamo e lo passiamo successivamente a getValue(). In particolare, specifichiamo che stiamo ricevendo una lista di liste di double
+                GenericTypeIndicator<ArrayList<ArrayList<Double>>> t = new GenericTypeIndicator<ArrayList<ArrayList<Double>>>() {};
+
+                //array di coordinate. Per ogni punto, in posizione i latitudine, i+1 longitudine
+                ArrayList<ArrayList<Double>> coordinateList = dataSnapshot.child("coordinate").getValue(t);
+
+                drawGeofence(coordinateList);
+
+                Log.d("ALLARME", "Nuovo valore aggiunto: " +  dataSnapshot.getKey() + " " + testo );
+                for (int i=0;i<coordinateList.size();i++){
+                    ArrayList<Double> coppiaCoordinate = coordinateList.get(i);
+                    Double latitudine = coppiaCoordinate.get(0);
+                    Double longitudine = coppiaCoordinate.get(1);
+                    Log.d("Coordinate allarme punto " + Integer.toString(i), "Latitudine: " + latitudine + ", Longitudine: " + longitudine);
+                }
 
 
-                Log.d("ALLARME", "Nuovo valore aggiunto: " +  dataSnapshot.getKey() + " " + testo + ". Latitudine: " + latitudine + ", Longitudine: " + longitudine);
-                Toast.makeText(getApplicationContext(), testo, Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -268,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
         userData = new UserData();
 
 
-        drawGeofence();
+        //drawGeofence();
 
         //richiedo aggiornamenti posizione
         requestLocationUpdates();
@@ -524,9 +539,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void drawGeofence(){
-        //punti che definiscono il geofance
+    private void drawGeofence(ArrayList<ArrayList<Double>> points){
         ArrayList<GeoPoint> polygonPoints = new ArrayList<>();
+        for (int i=0;i<points.size(); i++){
+            ArrayList<Double> coppiaCoordinate = points.get(i);
+            Double latitudine = coppiaCoordinate.get(0);
+            Double longitudine = coppiaCoordinate.get(1);
+            polygonPoints.add(new GeoPoint(latitudine, longitudine));
+        }
+        //inserisco di nuovo ultimo punto per chiudere il geofence
+        ArrayList<Double> coppiaCoordinate = points.get(0);
+        Double latitudine = coppiaCoordinate.get(0);
+        Double longitudine = coppiaCoordinate.get(1);
+        polygonPoints.add(new GeoPoint(latitudine, longitudine));
+
+        /*
         polygonPoints.add(new GeoPoint(44.493760, 11.343032)); // Vertice 1
         polygonPoints.add(new GeoPoint(44.493760, 11.343234)); // Vertice 2
         polygonPoints.add(new GeoPoint(44.493911, 11.343437)); // Vertice 3
@@ -534,7 +561,7 @@ public class MainActivity extends AppCompatActivity {
         polygonPoints.add(new GeoPoint(44.494222, 11.343234)); // Vertice 5
         polygonPoints.add(new GeoPoint(44.494222, 11.343032)); // Vertice 6
         polygonPoints.add(new GeoPoint(44.493760, 11.343032)); // Torna al Vertice 1 per chiudere il poligono
-
+        */
 
 
 
