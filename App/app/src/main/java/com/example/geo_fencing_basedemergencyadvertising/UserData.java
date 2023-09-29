@@ -22,7 +22,7 @@ public class UserData {
     }
 
     public void setData(double latitude, double longitude, int recognizedActivity){
-        this.username = "USER-TEST";
+        this.username = "USER-TEST3";
         this.latitude = latitude;
         this.longitude = longitude;
         this.i = 0;

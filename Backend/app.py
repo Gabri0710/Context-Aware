@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from geoalchemy2 import Geometry
 from sqlalchemy import create_engine
+from sqlalchemy.sql import text
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
@@ -25,43 +26,11 @@ firebase_admin.initialize_app(cred, {
 notifiche_ref = firebase_admin.db.reference('/notifiche')
 
 
-# Definisco il modello per la tabella che contiene activity e posizione degli utenti
-class UserUpdate(db.Model):
-    __table_args__ = {'schema': 'emergency-schema'}  # Imposta lo schema qui
-    __tablename__ = 'user-information'  # Il nome della tabella senza lo schema
-    username = db.Column(db.String(255), primary_key=True)
-    posizione = db.Column(Geometry(geometry_type='POINT', srid=4326))
-    activity = db.Column(db.String(7))
-
-
-# Definisco il modello per la tabella degli utenti
-class UserManagement(db.Model):
-    __table_args__ = {'schema': 'emergency-schema'}  # Imposta lo schema qui
-    __tablename__ = 'user-credentials'  # Il nome della tabella senza lo schema
-    username = db.Column(db.String(255), primary_key=True)
-    password = db.Column(db.String(255))
-
-    def create_user(self):
-        # Crea un nuovo utente e inserisce i dati nel database
-        db.session.add(self)
-        db.session.commit()
-
-    @classmethod
-    def find_user_by_username(cls, username):
-        # Trova un utente nel database dato il suo username
-        return cls.query.filter_by(username=username).first()
-
-    def check_password(self, password):
-        # Verifica la password dell'utente
-        return check_password_hash(self.password, password)
-
-
-
 @app.route('/')
 def hello_world():
     return '<h1>GEOFECE EMERGENCY</h1>'
 
-
+#DA RIFARE
 @app.route('/register', methods=['POST'])
 def register():
     try:
@@ -87,7 +56,7 @@ def register():
 
 
 
-
+#DA RIFARE
 @app.route('/login', methods=['POST'])
 def login():
     try:
@@ -112,8 +81,6 @@ def login():
 
 
 
-    
-
 @app.route('/upload_location', methods=['POST'])
 def upload_location():
     try:
@@ -126,56 +93,91 @@ def upload_location():
         longitude = data.get('longitude')
         activity = data.get('recognizedActivity')
 
-        #ottengo l'username dell'utente (DA CAMBIARE, MOMENTANEO PER TEST)
-        #username = i                    #DA SOSTITUIRE CON USER_USED
-
-        print(latitude)
-        print(longitude)
-        print(activity)
-
+        #TODO: ottenere username con registrazione (da android in realtà)
+    
         # Creo un oggetto Point con le coordinate
         coordinates = f'POINT({longitude} {latitude})'
         
+        # Creo la query SQL per inserire o aggiornare il record
+        query = text("""
+            INSERT INTO "emergency-schema"."user-information" (username, posizione, activity)
+            VALUES (:username, :posizione, :activity)
+            ON CONFLICT (username) DO UPDATE
+            SET posizione = EXCLUDED.posizione, activity = EXCLUDED.activity
+        """)
 
-        # Creo un nuovo record nella tabella
-        user_update = UserUpdate(username=username, posizione=coordinates, activity=activity)
-
-        # Provo a inserire (o aggiornare) il record
+        # Parametri per la query
+        parametri = {
+            'username': username,
+            'posizione': coordinates,
+            'activity': activity
+        }
+      
         try:
-            db.session.merge(user_update)
-            db.session.commit()
+            db.session.execute(query, parametri)  # Eseguo la query con i parametri
+            db.session.commit()  # Eseguo il commit per confermare le modifiche nel database
             print("Record inserito o aggiornato con successo")
         except Exception as e:
-            print(f"Errore durante inserimento o aggiornamento: {str(e)}")
+            db.session.rollback()  # Annulla la transazione in caso di errore
+            print(f"Errore durante l'inserimento o l'aggiornamento: {str(e)}")
         
 
-        #print(f"Latitude: {latitude}, Longitude: {longitude}")
-
-        #i+=1
         return jsonify({"message": "Dati di posizione ricevuti correttamente."}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
+
 @app.route('/firebase_update')
 def firebase_update():
-    # lista di liste contenente coppie latitudine, longitudine del geofence dell'allarme
+    # lista di liste contenente coppie [latitudine, longitudine] del geofence dell'allarme
     coordinate_points = [[44.493760, 11.343032], [44.493760,11.343234], [44.493911, 11.343437], [44.494072, 11.343437], [44.494222, 11.343234], [44.494222, 11.343032]]
     nuova_notifica = {
     'testo': 'Emergenza! Terremoto in corso.',
     'coordinate': coordinate_points
     }
 
-    # Scrivi la notifica nel database sotto il nodo "notifiche"
-    
+    # Scrivi la notifica nel database sotto il nodo "notifiche" (solo identificatore univoco della notifica, non ancora i dati)
     nuova_notifica_ref = notifiche_ref.push()
-    nuova_notifica_ref.set(nuova_notifica)
-    #customKey = "il_tuo_identificatore_personale"  # Sostituisci con l'identificatore desiderato
+
+    #prendo l'identificatore univoco con la quale abbiamo contrassgnato la nuova notifica
+    id_notifica = nuova_notifica_ref.key
+
+    #
+    #inserisco il geofence anche nel mio database postgres/postgis:
+    #
+
+    #creo una lista con le coordinate richieste nel database postgis (Array di POINT)
+    coordinate_points_postgis = []
+    for lat, lon in coordinate_points:
+        newpoint = f'POINT({lon} {lat})'
+        coordinate_points_postgis.append(newpoint)
+
+    #creo la query    
+    query = text("""
+        INSERT INTO "emergency-schema"."geofence-information" (id, points)
+        VALUES (:id, :points)
+    """)
+
+    # Parametri per la query
+    parametri = {
+        'id': id_notifica,
+        'points': coordinate_points_postgis,
+    }
+
+    #TODO: controllare il risultato. E' in un formato diverso da quello aspettato
+    try:
+        db.session.execute(query, parametri)  # Eseguo la query con i parametri
+        db.session.commit()  # Eseguo il commit per confermare le modifiche nel database
+        print("Record inserito con successo")
+    except Exception as e:
+        db.session.rollback()  # Annulla la transazione in caso di errore
+        print(f"Errore durante l'inserimento: {str(e)}")
     
 
-    # Scrivi la notifica nel database sotto il nodo "notifiche" con la chiave personalizzata
-    #notifiche_ref.put(customKey, nuova_notifica)
+    #aggiungo alla notifica inserita su firebase precedentemente i dati specificati (testo e coordinate)
+    nuova_notifica_ref.set(nuova_notifica)
     
     return "<h1>Insert successfull</h1>"
 
