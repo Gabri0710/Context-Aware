@@ -228,18 +228,18 @@ public class MainActivity extends AppCompatActivity {
                         sendBroadcast(alertIntent);
                     }
                 }
-                else if(users_between_1_2km.contains(username)){
-                    Log.d("ALLARME", "SEI TRA 1 e 2km DAL GEOFENCE: " + testo );
-                    for (int i=0;i<coordinateList.size();i++){
-                        ArrayList<Double> coppiaCoordinate = coordinateList.get(i);
-                        Double latitudine = coppiaCoordinate.get(0);
-                        Double longitudine = coppiaCoordinate.get(1);
-                        Log.d("Coordinate allarme punto " + Integer.toString(i), "Latitudine: " + latitudine + ", Longitudine: " + longitudine);
-                        Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
-                        alertIntent.putExtra("priority", 3);
-                        sendBroadcast(alertIntent);
-                    }
-                }
+//                else if(users_between_1_2km.contains(username)){
+//                    Log.d("ALLARME", "SEI TRA 1 e 2km DAL GEOFENCE: " + testo );
+//                    for (int i=0;i<coordinateList.size();i++){
+//                        ArrayList<Double> coppiaCoordinate = coordinateList.get(i);
+//                        Double latitudine = coppiaCoordinate.get(0);
+//                        Double longitudine = coppiaCoordinate.get(1);
+//                        Log.d("Coordinate allarme punto " + Integer.toString(i), "Latitudine: " + latitudine + ", Longitudine: " + longitudine);
+//                        Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+//                        alertIntent.putExtra("priority", 3);
+//                        sendBroadcast(alertIntent);
+//                    }
+//                }
 
 
 
@@ -319,7 +319,8 @@ public class MainActivity extends AppCompatActivity {
         //ROBA PER INVIO DATI A BACKEND
 
         //url del localhost da emulatore. Se da telefono vero sostituire con 127.0.0.1:5000
-        String BASE_URL = "http://10.0.2.2:5000";
+        // String BASE_URL = "http://10.0.2.2:5000";
+        String BASE_URL = "http://192.168.1.189:5000";
         // Inizializza Retrofit
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
