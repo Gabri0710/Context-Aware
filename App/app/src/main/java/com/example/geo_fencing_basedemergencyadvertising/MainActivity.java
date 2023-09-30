@@ -271,6 +271,45 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        myRef4geofence.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                // Il metodo onDataChange verrà chiamato quando i dati nel nodo "notifiche" cambiano
+                // oppure quando il listener viene aggiunto per la prima volta e i dati esistono già nel nodo.
+
+                // Verifica se ci sono dati nel nodo "notifiche"
+                if (dataSnapshot.exists()) {
+                    // Itera attraverso tutti i figli nel nodo "notifiche"
+                    for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
+                        // Ottieni le informazioni da ciascun figlio
+                        String identificativo = childSnapshot.getKey();
+                        String testo = childSnapshot.child("testo").getValue(String.class);
+
+                        //classe di utilità fornita da Firebase SDK per Java per aiutare nella deserializzazione dei dati da Firebase Realtime Database.
+                        //È utilizzato quando si desidera deserializzare dati generici, come liste ecc, perché firebase non riconosce automaticamente il tipo di dati
+                        //quindi, lo specifichiamo e lo passiamo successivamente a getValue(). In particolare, specifichiamo che stiamo ricevendo una lista di liste di double
+                        GenericTypeIndicator<ArrayList<ArrayList<Double>>> t = new GenericTypeIndicator<ArrayList<ArrayList<Double>>>() {};
+
+                        //array di coordinate. Per ogni punto, in posizione i latitudine, i+1 longitudine
+                        ArrayList<ArrayList<Double>> coordinateList = childSnapshot.child("coordinate").getValue(t);
+
+                        Log.d("TROVATO GEOFENCE", "identificativo: " + identificativo + " " + coordinateList);
+                        drawGeofence(identificativo, coordinateList);
+                    }
+                } else {
+                    // Il nodo "notifiche" è vuoto
+                    System.out.println("Nessuna notifica presente nel nodo 'notifiche'.");
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // Gestisci eventuali errori di lettura dal database
+                System.out.println("Errore durante la lettura dei dati: " + databaseError.getMessage());
+            }
+        });
+
+
         myRef4user_state.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
