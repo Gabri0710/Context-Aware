@@ -133,10 +133,7 @@ def upload_location():
 def firebase_update():
     # lista di liste contenente coppie [latitudine, longitudine] del geofence dell'allarme
     coordinate_points = [[44.493760, 11.343032], [44.493760,11.343234], [44.493911, 11.343437], [44.494072, 11.343437], [44.494222, 11.343234], [44.494222, 11.343032]]
-    nuova_notifica = {
-    'testo': 'Emergenza! Terremoto in corso.',
-    'coordinate': coordinate_points
-    }
+    
 
     # Scrivi la notifica nel database sotto il nodo "notifiche" (solo identificatore univoco della notifica, non ancora i dati)
     nuova_notifica_ref = notifiche_ref.push()
@@ -149,21 +146,23 @@ def firebase_update():
     #
 
     #creo una lista con le coordinate richieste nel database postgis (Array di POINT)
-    coordinate_points_postgis = []
+    polygon_string = "POLYGON(("
     for lat, lon in coordinate_points:
-        newpoint = f'POINT({lon} {lat})'
-        coordinate_points_postgis.append(newpoint)
+        polygon_string += f"{lon} {lat}, "
+    # Chiudo il poligono aggiungendo il primo punto alla fine
+    lat, lon = coordinate_points[0]  # Primo punto
+    polygon_string += f"{lon} {lat}))"
 
-    #creo la query    
+    #creo la query per inserire i valori nel database postgis
     query = text("""
-        INSERT INTO "emergency-schema"."geofence-information" (id, points)
-        VALUES (:id, :points)
+        INSERT INTO "emergency-schema"."geofence-information" (id, polygon)
+        VALUES (:id, :polygon)
     """)
 
     # Parametri per la query
     parametri = {
         'id': id_notifica,
-        'points': coordinate_points_postgis,
+        'polygon': polygon_string,
     }
 
     #TODO: controllare il risultato. E' in un formato diverso da quello aspettato
@@ -175,6 +174,103 @@ def firebase_update():
         db.session.rollback()  # Annulla la transazione in caso di errore
         print(f"Errore durante l'inserimento: {str(e)}")
     
+    
+    #creo la query per calcolare gli utenti che si trovano dentro il geofence
+    query = text("""
+        SELECT ui.username, gi.id as geofence_id
+        FROM "emergency-schema"."user-information" ui
+        JOIN "emergency-schema"."geofence-information" gi 
+        ON ST_Within(ui.posizione::geometry, gi.polygon::geometry)
+        WHERE gi.id = :id_notifica;
+
+    """)
+
+    # Parametri per la query
+    parametri = {
+        'id_notifica': id_notifica,
+    }
+    
+    users_in_geofence = []
+
+    try:
+        result = db.session.execute(query, parametri)  # Esegui la query con i parametri
+        # Estrai la colonna "username" dai risultati e crea una lista
+        users_in_geofence = [row[0] for row in result.fetchall()]
+        # Restituisci la lista di usernames come JSON
+        print("IN GEOFENCE: ")
+        print(users_in_geofence)
+    except Exception as e:
+        db.session.rollback()  # Annulla la transazione in caso di errore
+        print(f"Errore durante l'esecuzione della query: {str(e)}")
+
+
+    #creo la query per calcolare gli utenti che si trovano a 1km di distanza dal geofence
+    query = text("""
+        SELECT ui.username, gi.id AS geofence_id
+        FROM "emergency-schema"."user-information" ui
+        JOIN "emergency-schema"."geofence-information" gi 
+        ON ST_Distance(ui.posizione::geography, gi.polygon::geography) <= 1000 
+        AND NOT ST_Within(ui.posizione::geometry, gi.polygon::geometry)
+        WHERE gi.id = :id_notifica;
+
+
+    """)
+
+    # Parametri per la query
+    parametri = {
+        'id_notifica': id_notifica,
+    }
+    
+    users_in_1km = []
+    try:
+        result = db.session.execute(query, parametri)  # Esegui la query con i parametri
+        # Estrai la colonna "username" dai risultati e crea una lista
+        users_in_1km = [row[0] for row in result.fetchall()]
+        # Restituisci la lista di usernames come JSON
+        print("IN 1 km: ")
+        print(users_in_1km)
+    except Exception as e:
+        db.session.rollback()  # Annulla la transazione in caso di errore
+        print(f"Errore durante l'esecuzione della query: {str(e)}")
+
+
+
+    #creo la query per calcolare gli utenti che si trovano tra 1 e 2 km di distanza dal geofence
+    query = text("""
+        SELECT ui.username, gi.id AS geofence_id
+        FROM "emergency-schema"."user-information" ui
+        JOIN "emergency-schema"."geofence-information" gi 
+        ON ST_Distance(ui.posizione::geography, gi.polygon::geography) > 1000  -- Maggiore di 1 km
+        AND ST_Distance(ui.posizione::geography, gi.polygon::geography) <= 2000 -- Inferiore o uguale a 2 km
+        AND NOT ST_Within(ui.posizione::geometry, gi.polygon::geometry)
+        WHERE gi.id = :id_notifica;
+
+    """)
+
+    # Parametri per la query
+    parametri = {
+        'id_notifica': id_notifica,
+    }
+    
+    users_between_1_2km = []
+    try:
+        result = db.session.execute(query, parametri)  # Esegui la query con i parametri
+        # Estrai la colonna "username" dai risultati e crea una lista
+        users_between_1_2km = [row[0] for row in result.fetchall()]
+        # Restituisci la lista di usernames come JSON
+        print("IN 1-2 km: ")
+        print(users_between_1_2km)
+    except Exception as e:
+        db.session.rollback()  # Annulla la transazione in caso di errore
+        print(f"Errore durante l'esecuzione della query: {str(e)}")
+
+    nuova_notifica = {
+    'testo': 'Emergenza! Terremoto in corso.',
+    'coordinate': coordinate_points,
+    'in_geofence': users_in_geofence,
+    'in_1km' : users_in_1km,
+    'between_1_2km' : users_between_1_2km
+    }
 
     #aggiungo alla notifica inserita su firebase precedentemente i dati specificati (testo e coordinate)
     nuova_notifica_ref.set(nuova_notifica)

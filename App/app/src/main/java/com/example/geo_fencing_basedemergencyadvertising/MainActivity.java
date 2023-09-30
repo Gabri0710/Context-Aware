@@ -116,6 +116,8 @@ public class MainActivity extends AppCompatActivity {
     FirebaseDatabase database;
     DatabaseReference myRef;
 
+    private String username = "USER-TEST4";
+
 
 
     // definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
@@ -188,13 +190,45 @@ public class MainActivity extends AppCompatActivity {
 
                 drawGeofence(coordinateList);
 
-                Log.d("ALLARME", "Nuovo valore aggiunto: " +  dataSnapshot.getKey() + " " + testo );
-                for (int i=0;i<coordinateList.size();i++){
-                    ArrayList<Double> coppiaCoordinate = coordinateList.get(i);
-                    Double latitudine = coppiaCoordinate.get(0);
-                    Double longitudine = coppiaCoordinate.get(1);
-                    Log.d("Coordinate allarme punto " + Integer.toString(i), "Latitudine: " + latitudine + ", Longitudine: " + longitudine);
+                GenericTypeIndicator<ArrayList<String>> t1 = new GenericTypeIndicator<ArrayList<String>>() {};
+
+                //Lista di utenti nel geofence
+                ArrayList<String> users_in_geofenceList = dataSnapshot.child("in_geofence").getValue(t1);
+                //Lista di utenti a 1km dal geofence
+                ArrayList<String> users_in_1kmList = dataSnapshot.child("in_1km").getValue(t1);
+                //Lista di utenti tra 1 e 2 km
+                ArrayList<String> users_between_1_2km = dataSnapshot.child("between_1_2km").getValue(t1);
+
+                if (users_in_geofenceList.contains(username)) {
+                    // L'utente è presente nella lista
+                    Log.d("ALLARME", "SEI DENTRO IL GEOFENCE: " + testo );
+                    for (int i=0;i<coordinateList.size();i++){
+                        ArrayList<Double> coppiaCoordinate = coordinateList.get(i);
+                        Double latitudine = coppiaCoordinate.get(0);
+                        Double longitudine = coppiaCoordinate.get(1);
+                        Log.d("Coordinate allarme punto " + Integer.toString(i), "Latitudine: " + latitudine + ", Longitudine: " + longitudine);
+                    }
                 }
+                else if(users_in_1kmList.contains(username)){
+                    Log.d("ALLARME", "SEI A 1km DAL GEOFENCE: " + testo );
+                    for (int i=0;i<coordinateList.size();i++){
+                        ArrayList<Double> coppiaCoordinate = coordinateList.get(i);
+                        Double latitudine = coppiaCoordinate.get(0);
+                        Double longitudine = coppiaCoordinate.get(1);
+                        Log.d("Coordinate allarme punto " + Integer.toString(i), "Latitudine: " + latitudine + ", Longitudine: " + longitudine);
+                    }
+                }
+                else if(users_between_1_2km.contains(username)){
+                    Log.d("ALLARME", "SEI TRA 1 e 2km DAL GEOFENCE: " + testo );
+                    for (int i=0;i<coordinateList.size();i++){
+                        ArrayList<Double> coppiaCoordinate = coordinateList.get(i);
+                        Double latitudine = coppiaCoordinate.get(0);
+                        Double longitudine = coppiaCoordinate.get(1);
+                        Log.d("Coordinate allarme punto " + Integer.toString(i), "Latitudine: " + latitudine + ", Longitudine: " + longitudine);
+                    }
+                }
+
+
 
 
             }
