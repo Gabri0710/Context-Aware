@@ -115,9 +115,10 @@ public class MainActivity extends AppCompatActivity {
     private UserData userData;
 
     FirebaseDatabase database;
-    DatabaseReference myRef;
+    DatabaseReference myRef4geofence;
+    DatabaseReference myRef4user_state;
 
-    private String username = "USER-TEST4";
+    private String username = "USER-TEST2";
 
     //Hashmap che contiene associazione chiave valore dove chiave=id_geofence valore=punti del geofence
     Map<String, Polygon> geofence = new HashMap<String, Polygon>();
@@ -163,12 +164,12 @@ public class MainActivity extends AppCompatActivity {
         checkAllPermissions();
 
         database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/notifiche");
+        myRef4geofence = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/notifiche");
+        myRef4user_state = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/user/"+username);
 
+        //Log.d("Firebase Reference", "Percorso della referenza: " + myRef4geofence.toString());
 
-        Log.d("Firebase Reference", "Percorso della referenza: " + myRef.toString());
-
-        myRef.addChildEventListener(new ChildEventListener() {
+        myRef4geofence.addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
                 // Questo metodo viene chiamato quando viene aggiunto un nuovo figlio al nodo "notifiche"
@@ -319,8 +320,8 @@ public class MainActivity extends AppCompatActivity {
         //ROBA PER INVIO DATI A BACKEND
 
         //url del localhost da emulatore. Se da telefono vero sostituire con 127.0.0.1:5000
-        // String BASE_URL = "http://10.0.2.2:5000";
-        String BASE_URL = "http://192.168.1.189:5000";
+        String BASE_URL = "http://10.0.2.2:5000";
+        //String BASE_URL = "http://192.168.1.189:5000";
         // Inizializza Retrofit
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
