@@ -2,6 +2,7 @@ package com.example.geo_fencing_basedemergencyadvertising;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -40,6 +41,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.GenericTypeIndicator;
+import com.google.firebase.database.ValueEventListener;
 
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
@@ -167,7 +169,7 @@ public class MainActivity extends AppCompatActivity {
         myRef4geofence = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/notifiche");
         myRef4user_state = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/user/"+username);
 
-        //Log.d("Firebase Reference", "Percorso della referenza: " + myRef4geofence.toString());
+        Log.d("Firebase Reference", "Percorso della referenza: " + myRef4user_state.toString());
 
         myRef4geofence.addChildEventListener(new ChildEventListener() {
             @Override
@@ -195,6 +197,7 @@ public class MainActivity extends AppCompatActivity {
 
                 drawGeofence(identificativo, coordinateList);
 
+                /*
                 GenericTypeIndicator<ArrayList<String>> t1 = new GenericTypeIndicator<ArrayList<String>>() {};
 
                 //Lista di utenti nel geofence
@@ -241,11 +244,13 @@ public class MainActivity extends AppCompatActivity {
 //                        sendBroadcast(alertIntent);
 //                    }
 //                }
-
+                */
 
 
 
             }
+
+
 
             @Override
             public void onChildRemoved(DataSnapshot dataSnapshot) {
@@ -265,6 +270,38 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("ALLARME", "ERRORE: " + databaseError.getMessage());
             }
         });
+
+        myRef4user_state.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                // Questo metodo viene chiamato quando i dati nella reference dell'utente cambiano
+                String state = dataSnapshot.getValue(String.class);
+                if (state.equals("DENTRO IL GEOFENCE")){
+                    Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+                    alertIntent.putExtra("priority", 1);
+                    sendBroadcast(alertIntent);
+                }
+                else if(state.equals("A 1 KM DAL GEOFENCE")){
+                    Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+                    alertIntent.putExtra("priority", 2);
+                    sendBroadcast(alertIntent);
+                }
+                else if(state.equals("1-2 KM DAL GEOFENCE")){
+                    Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+                    alertIntent.putExtra("priority", 3);
+                    sendBroadcast(alertIntent);
+                }
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                // Gestisci eventuali errori durante il recupero dei dati dalla reference
+                Log.d("Errore", "ERRORE: " + databaseError.getMessage());
+            }
+        });
+
+
 
 
         // Verifica se il GPS è attualmente disattivato
@@ -509,11 +546,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<Void> call, Response<Void> response) {
                 if (response.isSuccessful()) {
-                    Log.d("SEND LOCATION TO BACKEND,", "success");
+                    //Log.d("SEND LOCATION TO BACKEND,", "success");
                     // La posizione è stata inviata con successo
                     // Puoi gestire la risposta del backend qui se necessario
                 } else {
-                    Log.d("SEND LOCATION TO BACKEND,", "failure");
+                    //Log.d("SEND LOCATION TO BACKEND,", "failure");
                     // Gestisci un errore nella risposta del backend (es. codice di errore HTTP)
                     // Puoi mostrare un messaggio di errore all'utente o registrare l'errore
                 }
@@ -543,12 +580,12 @@ public class MainActivity extends AppCompatActivity {
 
                     //invio la posizione al backend (prova). Chiamo il metodo sendLocationToBackend
                     sendLocationToBackend(location.getLatitude(), location.getLongitude());
-                    Log.d("Invio", "effettuato");
+                    //Log.d("Invio", "effettuato");
 
                     //creo la currentlocation (per la mappa)
                     GeoPoint currentLocation = new GeoPoint(location.getLatitude(), location.getLongitude());
 
-                    Log.d("POSIZIONE", "Lat: " + currentLocation.getLatitude() + ", Long: " + currentLocation.getLongitude());
+                    //Log.d("POSIZIONE", "Lat: " + currentLocation.getLatitude() + ", Long: " + currentLocation.getLongitude());
 
                     //uso questo flag per capire se è la prima volta che richiediamo l'aggiornamento della posizione
                     //se sì, aggiorno la posizione a quella rilevata (ho dovuto impostare un valore qualsiasi per l'inizializzazione per

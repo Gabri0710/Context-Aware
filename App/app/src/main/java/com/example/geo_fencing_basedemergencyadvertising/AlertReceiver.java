@@ -53,6 +53,8 @@ public class AlertReceiver extends BroadcastReceiver {
                 .setContentText(notificationText)
                 .setPriority(priorityLevel);
 
+        Log.d("NOTIFICA", notificationText);
+
         // Invio della notifica tramite Notification Manager
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(getUniqueNotificationId(), builder.build());

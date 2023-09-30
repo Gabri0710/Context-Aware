@@ -155,7 +155,6 @@ def upload_location():
 
         if row is not None:
             user_state_ref.set('DENTRO IL GEOFENCE')
-            print("HERE")
             return "<h1>DENTRO IL GEOFENCE</h1>"
 
         
