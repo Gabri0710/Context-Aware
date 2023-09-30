@@ -24,7 +24,7 @@ firebase_admin.initialize_app(cred, {
 })
 
 notifiche_ref = firebase_admin.db.reference('/notifiche')
-#user_position_ref = firebase_admin.db.reference('/user-position')
+
 
 
 @app.route('/')
@@ -123,8 +123,113 @@ def upload_location():
             print(f"Errore durante l'inserimento o l'aggiornamento: {str(e)}")
         
 
-        return jsonify({"message": "Dati di posizione ricevuti correttamente."}), 200
+        #return jsonify({"message": "Dati di posizione ricevuti correttamente."}), 200
 
+        user_state_ref = firebase_admin.db.reference('/user/' + username)
+
+
+        #creo la query per calcolare se l'utente si trova dentro il geofence
+        query = text("""
+            SELECT ui.username, gi.id as geofence_id
+            FROM "emergency-schema"."user-information" ui
+            JOIN "emergency-schema"."geofence-information" gi 
+            ON ST_Within(ui.posizione::geometry, gi.polygon::geometry)
+            WHERE ui.username = :username;
+
+        """)
+
+        # Parametri per la query
+        parametri = {
+            'username': username,
+        }
+        
+        users_in_geofence = []
+
+        try:
+            result = db.session.execute(query, parametri)  # Esegui la query con i parametri
+            # Estrai la colonna "username" dai risultati e crea una lista
+            row = result.fetchone()
+        except Exception as e:
+            db.session.rollback()  # Annulla la transazione in caso di errore
+            print(f"Errore durante l'esecuzione della query: {str(e)}")
+
+        if row is not None:
+            user_state_ref.set('DENTRO IL GEOFENCE')
+            return "<h1>DENTRO IL GEOFENCE</h1>"
+
+        
+
+        #creo la query per calcolare se l'utente si trova a 1km di distanza dal geofence
+        query = text("""
+            SELECT ui.username, gi.id AS geofence_id
+            FROM "emergency-schema"."user-information" ui
+            JOIN "emergency-schema"."geofence-information" gi 
+            ON ST_Distance(ui.posizione::geography, gi.polygon::geography) <= 1000 
+            AND NOT ST_Within(ui.posizione::geometry, gi.polygon::geometry)
+            WHERE ui.username = :username;
+
+
+        """)
+
+        # Parametri per la query
+        parametri = {
+            'username': username,
+        }
+        
+        users_in_1km = []
+        try:
+            result = db.session.execute(query, parametri)  # Esegui la query con i parametri
+            # Estrai la colonna "username" dai risultati e crea una lista
+            users_in_1km = [row[0] for row in result.fetchall()]
+            # Restituisci la lista di usernames come JSON
+            print("IN 1 km: ")
+            print(users_in_1km)
+        except Exception as e:
+            db.session.rollback()  # Annulla la transazione in caso di errore
+            print(f"Errore durante l'esecuzione della query: {str(e)}")
+
+
+
+        #creo la query per calcolare se l'utente si trova tra 1 e 2 km di distanza dal geofence
+        query = text("""
+            SELECT ui.username, gi.id AS geofence_id
+            FROM "emergency-schema"."user-information" ui
+            JOIN "emergency-schema"."geofence-information" gi 
+            ON ST_Distance(ui.posizione::geography, gi.polygon::geography) > 1000  -- Maggiore di 1 km
+            AND ST_Distance(ui.posizione::geography, gi.polygon::geography) <= 2000 -- Inferiore o uguale a 2 km
+            AND NOT ST_Within(ui.posizione::geometry, gi.polygon::geometry)
+            WHERE ui.username = :username;
+
+        """)
+
+        # Parametri per la query
+        parametri = {
+            'username': username,
+        }
+        
+        users_between_1_2km = []
+        try:
+            result = db.session.execute(query, parametri)  # Esegui la query con i parametri
+            # Estrai la colonna "username" dai risultati e crea una lista
+            users_between_1_2km = [row[0] for row in result.fetchall()]
+            # Restituisci la lista di usernames come JSON
+            print("IN 1-2 km: ")
+            print(users_between_1_2km)
+        except Exception as e:
+            db.session.rollback()  # Annulla la transazione in caso di errore
+            print(f"Errore durante l'esecuzione della query: {str(e)}")
+
+        nuova_notifica = {
+        'testo': 'Emergenza! Terremoto in corso.',
+        'coordinate': coordinate_points,
+        'in_geofence': users_in_geofence,
+        'in_1km' : users_in_1km,
+        'between_1_2km' : users_between_1_2km
+        }
+
+        #aggiungo alla notifica inserita su firebase precedentemente i dati specificati (testo e coordinate)
+        nuova_notifica_ref.set(nuova_notifica)
+        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
