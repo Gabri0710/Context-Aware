@@ -26,6 +26,8 @@ import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.widget.Toast;
 
 import com.google.android.gms.location.ActivityRecognition;
@@ -46,6 +48,7 @@ import com.google.firebase.database.ValueEventListener;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
+import org.osmdroid.views.MapController;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.ItemizedIconOverlay;
 import org.osmdroid.views.overlay.OverlayItem;
@@ -105,6 +108,8 @@ public class MainActivity extends AppCompatActivity {
 
     private Location location;
     private MapView mapView;
+    private MapController mapController;
+    private ScaleGestureDetector scaleGestureDetector;
     private ItemizedIconOverlay<OverlayItem> itemizedIconOverlay;
     private MyLocationNewOverlay myLocationOverlay;
 
@@ -396,8 +401,8 @@ public class MainActivity extends AppCompatActivity {
         //ROBA PER INVIO DATI A BACKEND
 
         //url del localhost da emulatore. Se da telefono vero sostituire con 127.0.0.1:5000
-        String BASE_URL = "http://10.0.2.2:5000";
-        //String BASE_URL = "http://192.168.1.189:5000";
+//        String BASE_URL = "http://10.0.2.2:5000";
+        String BASE_URL = "http://192.168.1.189:5000";
         // Inizializza Retrofit
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
@@ -450,6 +455,19 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         // Esegui le operazioni necessarie per rilevare la chiusura definitiva dell'app
         // Questo metodo verrà chiamato quando l'Activity viene distrutta
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        scaleGestureDetector.onTouchEvent(event); // Passa l'evento alla ScaleGestureDetector
+        return super.onTouchEvent(event);
+    }
+
+    // Calcola la distanza tra due punti in MotionEvent
+    private float getDistance(MotionEvent event) {
+        float x = event.getX(0) - event.getX(1);
+        float y = event.getY(0) - event.getY(1);
+        return (float) Math.sqrt(x * x + y * y);
     }
 
     /**
@@ -547,13 +565,19 @@ public class MainActivity extends AppCompatActivity {
         // Ottieni la view della mappa dal layout XML
         mapView = findViewById(R.id.mapView);
 
+        mapView.setMultiTouchControls(true); // Abilita il multi-touch
+
+        mapController = (MapController) mapView.getController();
+        mapController.setZoom(20); // Imposta il livello di zoom iniziale
+
         // Abilita il provider di posizione GPS
         mapView.setTileSource(TileSourceFactory.MAPNIK);
 
         // Imposto la posizione a una iniziale fittizia per evitare valori null iniziali e lo setto come centro della mappa
         GeoPoint startPoint = new GeoPoint(41.8902, 12.4922);
         mapView.getController().setCenter(startPoint);
-        mapView.getController().setZoom(20);
+        scaleGestureDetector = new ScaleGestureDetector(this, new MyScaleGestureListener());
+
 
         // Aggiungi un overlay di posizione
         myLocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider(getApplicationContext()), mapView);
@@ -750,4 +774,28 @@ public class MainActivity extends AppCompatActivity {
         geofence.remove(identificativo);
     }
 
+
+    // Listener per il gesto di pizzicamento
+    private class MyScaleGestureListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
+        @Override
+        public boolean onScale(ScaleGestureDetector detector) {
+            float scaleFactor = detector.getScaleFactor();
+            float zoomLevel = (float) mapView.getZoomLevelDouble();
+
+            // Calcola il nuovo livello di zoom
+            zoomLevel *= scaleFactor;
+
+            // Limita il livello di zoom minimo e massimo
+            if (zoomLevel < mapView.getMinZoomLevel()) {
+                zoomLevel = (float) mapView.getMinZoomLevel();
+            } else if (zoomLevel > mapView.getMaxZoomLevel()) {
+                zoomLevel = (float) mapView.getMaxZoomLevel();
+            }
+
+            // Imposta il nuovo livello di zoom
+            mapController.setZoom((int) zoomLevel);
+
+            return true;
+        }
+    }
 }
