@@ -211,6 +211,9 @@ public class MainActivity extends AppCompatActivity {
                         Double latitudine = coppiaCoordinate.get(0);
                         Double longitudine = coppiaCoordinate.get(1);
                         Log.d("Coordinate allarme punto " + Integer.toString(i), "Latitudine: " + latitudine + ", Longitudine: " + longitudine);
+                        Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+                        alertIntent.putExtra("priority", 1);
+                        sendBroadcast(alertIntent);
                     }
                 }
                 else if(users_in_1kmList.contains(username)){
@@ -220,6 +223,9 @@ public class MainActivity extends AppCompatActivity {
                         Double latitudine = coppiaCoordinate.get(0);
                         Double longitudine = coppiaCoordinate.get(1);
                         Log.d("Coordinate allarme punto " + Integer.toString(i), "Latitudine: " + latitudine + ", Longitudine: " + longitudine);
+                        Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+                        alertIntent.putExtra("priority", 2);
+                        sendBroadcast(alertIntent);
                     }
                 }
                 else if(users_between_1_2km.contains(username)){
@@ -229,6 +235,9 @@ public class MainActivity extends AppCompatActivity {
                         Double latitudine = coppiaCoordinate.get(0);
                         Double longitudine = coppiaCoordinate.get(1);
                         Log.d("Coordinate allarme punto " + Integer.toString(i), "Latitudine: " + latitudine + ", Longitudine: " + longitudine);
+                        Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+                        alertIntent.putExtra("priority", 3);
+                        sendBroadcast(alertIntent);
                     }
                 }
 
