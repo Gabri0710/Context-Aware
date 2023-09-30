@@ -24,6 +24,7 @@ firebase_admin.initialize_app(cred, {
 })
 
 notifiche_ref = firebase_admin.db.reference('/notifiche')
+#user_position_ref = firebase_admin.db.reference('/user-position')
 
 
 @app.route('/')
