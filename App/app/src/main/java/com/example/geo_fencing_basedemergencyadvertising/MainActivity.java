@@ -40,7 +40,6 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.GenericTypeIndicator;
-import com.google.firebase.database.ValueEventListener;
 
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
@@ -53,7 +52,9 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -117,6 +118,9 @@ public class MainActivity extends AppCompatActivity {
     DatabaseReference myRef;
 
     private String username = "USER-TEST4";
+
+    //Hashmap che contiene associazione chiave valore dove chiave=id_geofence valore=punti del geofence
+    Map<String, Polygon> geofence = new HashMap<String, Polygon>();
 
 
 
@@ -188,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
                 //array di coordinate. Per ogni punto, in posizione i latitudine, i+1 longitudine
                 ArrayList<ArrayList<Double>> coordinateList = dataSnapshot.child("coordinate").getValue(t);
 
-                drawGeofence(coordinateList);
+                drawGeofence(identificativo, coordinateList);
 
                 GenericTypeIndicator<ArrayList<String>> t1 = new GenericTypeIndicator<ArrayList<String>>() {};
 
@@ -236,6 +240,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onChildRemoved(DataSnapshot dataSnapshot) {
                 // Questo metodo viene chiamato quando un figlio viene rimosso dal nodo "notifiche"
+                String identificativo = dataSnapshot.getKey();
+                deleteGeofence(identificativo);
             }
 
             @Override
@@ -572,7 +578,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-
+    /*
     private void drawGeofence(ArrayList<ArrayList<Double>> points){
         ArrayList<GeoPoint> polygonPoints = new ArrayList<>();
         for (int i=0;i<points.size(); i++){
@@ -598,7 +604,7 @@ public class MainActivity extends AppCompatActivity {
         */
 
 
-
+    /*
         // Creazione del poligono
         Polygon polygon = new Polygon();
         polygon.setPoints(polygonPoints);
@@ -608,6 +614,53 @@ public class MainActivity extends AppCompatActivity {
 
         mapView.getOverlayManager().add(polygon);
     }
+    */
 
+    private void drawGeofence(String identificativo, ArrayList<ArrayList<Double>> points){
+        ArrayList<GeoPoint> polygonPoints = new ArrayList<>();
+        for (int i=0;i<points.size(); i++){
+            ArrayList<Double> coppiaCoordinate = points.get(i);
+            Double latitudine = coppiaCoordinate.get(0);
+            Double longitudine = coppiaCoordinate.get(1);
+            polygonPoints.add(new GeoPoint(latitudine, longitudine));
+        }
+        //inserisco di nuovo ultimo punto per chiudere il geofence
+        ArrayList<Double> coppiaCoordinate = points.get(0);
+        Double latitudine = coppiaCoordinate.get(0);
+        Double longitudine = coppiaCoordinate.get(1);
+        polygonPoints.add(new GeoPoint(latitudine, longitudine));
+
+
+        /*
+        polygonPoints.add(new GeoPoint(44.493760, 11.343032)); // Vertice 1
+        polygonPoints.add(new GeoPoint(44.493760, 11.343234)); // Vertice 2
+        polygonPoints.add(new GeoPoint(44.493911, 11.343437)); // Vertice 3
+        polygonPoints.add(new GeoPoint(44.494072, 11.343437)); // Vertice 4
+        polygonPoints.add(new GeoPoint(44.494222, 11.343234)); // Vertice 5
+        polygonPoints.add(new GeoPoint(44.494222, 11.343032)); // Vertice 6
+        polygonPoints.add(new GeoPoint(44.493760, 11.343032)); // Torna al Vertice 1 per chiudere il poligono
+        */
+
+
+
+        // Creazione del poligono
+        Polygon polygon = new Polygon();
+        polygon.setPoints(polygonPoints);
+        polygon.setFillColor(0x22FF0000); // Colore di riempimento con alpha
+        polygon.setStrokeColor(Color.RED); // Colore del bordo
+        polygon.setStrokeWidth(2); // Larghezza del bordo
+
+        geofence.put(identificativo, polygon);
+
+        mapView.getOverlayManager().add(polygon);
+    }
+
+
+    private void deleteGeofence(String identificativo){
+        Polygon polygon = geofence.get(identificativo);
+        mapView.getOverlayManager().remove(polygon);
+
+        geofence.remove(identificativo);
+    }
 
 }

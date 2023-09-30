@@ -129,8 +129,8 @@ def upload_location():
 
 
 
-@app.route('/firebase_update')
-def firebase_update():
+@app.route('/add_geofence')
+def add_geofence():
     # lista di liste contenente coppie [latitudine, longitudine] del geofence dell'allarme
     coordinate_points = [[44.493760, 11.343032], [44.493760,11.343234], [44.493911, 11.343437], [44.494072, 11.343437], [44.494222, 11.343234], [44.494222, 11.343032]]
     
@@ -276,6 +276,17 @@ def firebase_update():
     nuova_notifica_ref.set(nuova_notifica)
     
     return "<h1>Insert successfull</h1>"
+
+
+@app.route('/delete_geofence', methods=['POST'])
+def delete_geofence():
+    id_geofence = request.form['id_geofence']
+
+    id_ref = notifiche_ref.child(id_geofence)
+
+    # Elimina il dato dal database
+    id_ref.delete()
+    return "<h1> Eliminato </h1>"
 
 
 
