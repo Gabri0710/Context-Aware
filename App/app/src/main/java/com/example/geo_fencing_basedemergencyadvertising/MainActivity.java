@@ -309,23 +309,44 @@ public class MainActivity extends AppCompatActivity {
                         //Log.d("IDGEOFENCE", idGeofence);
                         CustomGeofence cg = geofence.get(idGeofence);
                         String alertText = cg.getDescription();
+                        /*
+                        Polygon p = cg.getPolygon();
+                        List<GeoPoint> geoPoints = p.getPoints();
+                        String coordinate = "";
+                        int i = 0;
+                        for (GeoPoint geoPoint : geoPoints) {
+                            double latitude = geoPoint.getLatitude(); // Latitudine
+                            double longitude = geoPoint.getLongitude(); // Longitudine
+                            coordinate+=Integer.toString(i);
+                            coordinate+=". Lat: ";
+                            coordinate+= latitude;
+                            coordinate+=", Lon: ";
+                            coordinate+= longitude;
+                            coordinate+="; ";
+
+                            // Ora puoi utilizzare latitude e longitude come vuoi
+                        }
+
+                         */
 
 
                         switch (state) {
                             case "DENTRO IL GEOFENCE":
                                 alertIntent.putExtra("alertText", alertText);
-                                Log.d("ALERTTEXT", alertText);
+                                //alertIntent.putExtra("coordinate", coordinate);
                                 alertIntent.putExtra("priority", 1);
                                 sendBroadcast(alertIntent);
                                 break;
                             case "A 1 KM DAL GEOFENCE":
                                 alertIntent.putExtra("alertText", alertText);
+                                //alertIntent.putExtra("coordinate", coordinate);
                                 alertIntent.putExtra("priority", 2);
                                 sendBroadcast(alertIntent);
 
                                 break;
                             case "1-2 KM DAL GEOFENCE":
                                 alertIntent.putExtra("alertText", alertText);
+                                //alertIntent.putExtra("coordinate", coordinate);
                                 alertIntent.putExtra("priority", 3);
                                 sendBroadcast(alertIntent);
                                 break;
@@ -407,23 +428,44 @@ public class MainActivity extends AppCompatActivity {
                     //Log.d("IDGEOFENCE", idGeofence);
                     CustomGeofence cg = geofence.get(idGeofence);
                     String alertText = cg.getDescription();
+                    /*
+                    Polygon p = cg.getPolygon();
+                    List<GeoPoint> geoPoints = p.getPoints();
+                    String coordinate = "";
+                    int i = 0;
+                    for (GeoPoint geoPoint : geoPoints) {
+                        double latitude = geoPoint.getLatitude(); // Latitudine
+                        double longitude = geoPoint.getLongitude(); // Longitudine
+                        coordinate+=Integer.toString(i);
+                        coordinate+=". Lat: ";
+                        coordinate+= latitude;
+                        coordinate+=", Lon: ";
+                        coordinate+= longitude;
+                        coordinate+="; ";
+
+                        // Ora puoi utilizzare latitude e longitude come vuoi
+                    }
+
+                     */
 
                     Log.d("ordine","1");
                     switch (state) {
                         case "DENTRO IL GEOFENCE":
                             alertIntent.putExtra("alertText", alertText);
-                            //Log.d("ALERTTEXT", alertText);
+                            //alertIntent.putExtra("coordinate", coordinate);
                             alertIntent.putExtra("priority", 1);
                             sendBroadcast(alertIntent);
                             break;
                         case "A 1 KM DAL GEOFENCE":
                             alertIntent.putExtra("alertText", alertText);
+                            //alertIntent.putExtra("coordinate", coordinate);
                             alertIntent.putExtra("priority", 2);
                             sendBroadcast(alertIntent);
 
                             break;
                         case "1-2 KM DAL GEOFENCE":
                             alertIntent.putExtra("alertText", alertText);
+                            //alertIntent.putExtra("coordinate", coordinate);
                             alertIntent.putExtra("priority", 3);
                             sendBroadcast(alertIntent);
                             break;
