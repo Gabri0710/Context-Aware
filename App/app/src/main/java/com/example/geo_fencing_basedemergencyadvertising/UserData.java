@@ -1,6 +1,7 @@
 package com.example.geo_fencing_basedemergencyadvertising;
 
 public class UserData {
+
     private String username;
     private double latitude;
     private double longitude;
@@ -21,8 +22,12 @@ public class UserData {
         return longitude;
     }
 
-    public void setData(double latitude, double longitude, int recognizedActivity){
-        this.username = "USER-TEST2";
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setData(String username,double latitude, double longitude, int recognizedActivity){
+        this.username = username;
         this.latitude = latitude;
         this.longitude = longitude;
         this.i = 0;

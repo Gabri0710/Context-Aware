@@ -700,7 +700,7 @@ public class MainActivity extends AppCompatActivity {
      * */
     private void sendLocationToBackend(double latitude, double longitude) {
 
-        userData.setData(latitude, longitude, recognizedActivity);
+        userData.setData(username, latitude, longitude, recognizedActivity);
         // Effettuo la richiesta HTTP POST. uso l'istanza dell'interfaccia SendPositionService (dove è gestito la richiesta POST)
         Call<Void> call = sendUserDataService.uploadData(userData);
 
