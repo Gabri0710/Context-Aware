@@ -122,19 +122,7 @@ def upload_location():
             db.session.rollback()  # Annulla la transazione in caso di errore
             print(f"Errore durante l'inserimento o l'aggiornamento: {str(e)}")
         
-        # Crea un oggetto GeoJSON per l'utente corrente
-        user_geojson = {
-            "type": "Feature",
-            "properties": {
-                "username": username,
-                "activity": activity
-            },
-            "geometry": {
-                "type": "Point",
-                "coordinates": [longitude, latitude]
-            }
-        }
-
+        
         
         user_state_ref = firebase_admin.db.reference('/user/' + username)
 
@@ -164,12 +152,20 @@ def upload_location():
             db.session.rollback()  # Annulla la transazione in caso di errore
             print(f"Errore durante l'esecuzione della query: {str(e)}")
 
+        
+        
+
+        
         if row is not None:
-            user_state_ref.set('DENTRO IL GEOFENCE')
+            new_value = {
+                'stato': 'DENTRO IL GEOFENCE',
+                'id_geofence': row[1]
+            }
+            user_state_ref.set(new_value)
             return "<h1>DENTRO IL GEOFENCE</h1>"
 
         
-
+        
         #creo la query per calcolare se l'utente si trova a 1km di distanza dal geofence
         query = text("""
             SELECT ui.username, gi.id AS geofence_id
@@ -196,12 +192,19 @@ def upload_location():
             db.session.rollback()  # Annulla la transazione in caso di errore
             print(f"Errore durante l'esecuzione della query: {str(e)}")
 
+        
+        
+
         if row is not None:
-            user_state_ref.set('A 1 KM DAL GEOFENCE')
+            new_value = {
+                'stato': 'A 1 KM DAL GEOFENCE',
+                'id_geofence': row[1]
+            }
+            user_state_ref.set(new_value)
             return "<h1>A 1 km dal geofence</h1>"
 
 
-
+        
         #creo la query per calcolare se l'utente si trova tra 1 e 2 km di distanza dal geofence
         query = text("""
             SELECT ui.username, gi.id AS geofence_id
@@ -228,24 +231,22 @@ def upload_location():
             db.session.rollback()  # Annulla la transazione in caso di errore
             print(f"Errore durante l'esecuzione della query: {str(e)}")
 
-        if row is not None:
-            user_state_ref.set('1-2 KM DAL GEOFENCE')
-            return "<h1>1-2 KM DAL GEOFENCE</h1>"
-
-
         
 
-        #TODO: RIGUARDARE, NON PENSO CHE SERVA
-        nuova_notifica = {
-        'testo': 'Emergenza! Terremoto in corso.',
-        'coordinate': coordinate_points,
-        'in_geofence': users_in_geofence,
-        'in_1km' : users_in_1km,
-        'between_1_2km' : users_between_1_2km
-        }
+        if row is not None:
+            new_value = {
+                'stato': '1-2 KM DAL GEOFENCE',
+                'id_geofence': row[1]
+            }
+            user_state_ref.set(new_value)
+            return "<h1>1-2 KM DAL GEOFENCE</h1>"
 
-        #aggiungo alla notifica inserita su firebase precedentemente i dati specificati (testo e coordinate)
-        nuova_notifica_ref.set(nuova_notifica)
+        new_value = {
+            'stato': 'OK',
+            'id_geofence': ""
+        }
+        user_state_ref.set(new_value)
+        return "<h1>OK</h1>"
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -318,6 +319,26 @@ def delete_geofence():
 
     # Elimina il dato dal database
     id_ref.delete()
+
+    query = text("""
+        DELETE FROM "emergency-schema"."geofence-information"
+        WHERE id = :id_geofence
+    """)
+
+    # Parametri per la query
+    parametri = {
+        'id_geofence': id_geofence
+    }
+
+    
+    try:
+        db.session.execute(query, parametri)  # Eseguo la query con i parametri
+        db.session.commit()  # Eseguo il commit per confermare le modifiche nel database
+        print("Record eliminato con successo")
+    except Exception as e:
+        db.session.rollback()  # Annulla la transazione in caso di errore
+        print(f"Errore durante l'eliminazione: {str(e)}")
+    
     return "<h1> Eliminato </h1>"
 
 
