@@ -9,8 +9,6 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 
-
-
 import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -20,11 +18,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.TextToSpeechService;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -59,6 +60,7 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import retrofit2.Call;
@@ -75,8 +77,8 @@ public class MainActivity extends AppCompatActivity {
     // Launcher per la richiesta di autorizzazione.
     // Nelle nuove versioni di android bisogna richiederla anche da codice e non solo nel manifest
     private static ActivityResultLauncher<String[]> requestPermissionsLauncher;
-    private ActivityResultLauncher<String> locationPermissionLauncher;
-    private ActivityResultLauncher<String> requestNotificationPermissionLauncher;
+//    private ActivityResultLauncher<String> locationPermissionLauncher;
+//    private ActivityResultLauncher<String> requestNotificationPermissionLauncher;
 
     // definisco client riconoscimento attività
     private ActivityRecognitionClient activityRecognitionClient;
@@ -101,11 +103,11 @@ public class MainActivity extends AppCompatActivity {
 
     // definisco nuovo canale di notifiche, per gli alert che arriveranno dal backend
     private NotificationChannel alertChannel;
-
+    private TextToSpeech textToSpeech;
     // definisco un broadcast receiver personalizzato per ricevere gli intent degli alert
     // dai questi intent il broadcast receiver gestirà la creazione e l'invio di notifiche
     private AlertReceiver alertReceiver;
-
+    //    private String alertText="";
     private Location location;
     private MapView mapView;
     private MapController mapController;
@@ -170,6 +172,11 @@ public class MainActivity extends AppCompatActivity {
 
         checkAllPermissions();
 
+
+
+
+
+
         database = FirebaseDatabase.getInstance();
         myRef4geofence = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/notifiche");
         myRef4user_state = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/user/"+username);
@@ -190,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
                 //TESTO, LATITUDINE E LONGITUDINE. DA GESTIRE QUI SE NO VENGONO VISTI COME null
 
                 String identificativo = dataSnapshot.getKey();
-                String testo = dataSnapshot.child("testo").getValue(String.class);
+//                alertText = dataSnapshot.child("testo").getValue(String.class);
 
                 //classe di utilità fornita da Firebase SDK per Java per aiutare nella deserializzazione dei dati da Firebase Realtime Database.
                 //È utilizzato quando si desidera deserializzare dati generici, come liste ecc, perché firebase non riconosce automaticamente il tipo di dati
@@ -202,60 +209,7 @@ public class MainActivity extends AppCompatActivity {
 
                 drawGeofence(identificativo, coordinateList);
 
-                /*
-                GenericTypeIndicator<ArrayList<String>> t1 = new GenericTypeIndicator<ArrayList<String>>() {};
-
-                //Lista di utenti nel geofence
-                ArrayList<String> users_in_geofenceList = dataSnapshot.child("in_geofence").getValue(t1);
-                //Lista di utenti a 1km dal geofence
-                ArrayList<String> users_in_1kmList = dataSnapshot.child("in_1km").getValue(t1);
-                //Lista di utenti tra 1 e 2 km
-                ArrayList<String> users_between_1_2km = dataSnapshot.child("between_1_2km").getValue(t1);
-
-                if (users_in_geofenceList.contains(username)) {
-                    // L'utente è presente nella lista
-                    Log.d("ALLARME", "SEI DENTRO IL GEOFENCE: " + testo );
-                    for (int i=0;i<coordinateList.size();i++){
-                        ArrayList<Double> coppiaCoordinate = coordinateList.get(i);
-                        Double latitudine = coppiaCoordinate.get(0);
-                        Double longitudine = coppiaCoordinate.get(1);
-                        Log.d("Coordinate allarme punto " + Integer.toString(i), "Latitudine: " + latitudine + ", Longitudine: " + longitudine);
-                        Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
-                        alertIntent.putExtra("priority", 1);
-                        sendBroadcast(alertIntent);
-                    }
-                }
-                else if(users_in_1kmList.contains(username)){
-                    Log.d("ALLARME", "SEI A 1km DAL GEOFENCE: " + testo );
-                    for (int i=0;i<coordinateList.size();i++){
-                        ArrayList<Double> coppiaCoordinate = coordinateList.get(i);
-                        Double latitudine = coppiaCoordinate.get(0);
-                        Double longitudine = coppiaCoordinate.get(1);
-                        Log.d("Coordinate allarme punto " + Integer.toString(i), "Latitudine: " + latitudine + ", Longitudine: " + longitudine);
-                        Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
-                        alertIntent.putExtra("priority", 2);
-                        sendBroadcast(alertIntent);
-                    }
-                }
-//                else if(users_between_1_2km.contains(username)){
-//                    Log.d("ALLARME", "SEI TRA 1 e 2km DAL GEOFENCE: " + testo );
-//                    for (int i=0;i<coordinateList.size();i++){
-//                        ArrayList<Double> coppiaCoordinate = coordinateList.get(i);
-//                        Double latitudine = coppiaCoordinate.get(0);
-//                        Double longitudine = coppiaCoordinate.get(1);
-//                        Log.d("Coordinate allarme punto " + Integer.toString(i), "Latitudine: " + latitudine + ", Longitudine: " + longitudine);
-//                        Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
-//                        alertIntent.putExtra("priority", 3);
-//                        sendBroadcast(alertIntent);
-//                    }
-//                }
-                */
-
-
-
             }
-
-
 
             @Override
             public void onChildRemoved(DataSnapshot dataSnapshot) {
@@ -288,8 +242,11 @@ public class MainActivity extends AppCompatActivity {
                     for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
                         // Ottieni le informazioni da ciascun figlio
                         String identificativo = childSnapshot.getKey();
-                        String testo = childSnapshot.child("testo").getValue(String.class);
+//                        alertText = childSnapshot.child("testo").getValue(String.class);
+//
+//                        Log.d("TESYTOOOO", alertText);
 
+                        Log.d("ordine","2");
                         //classe di utilità fornita da Firebase SDK per Java per aiutare nella deserializzazione dei dati da Firebase Realtime Database.
                         //È utilizzato quando si desidera deserializzare dati generici, come liste ecc, perché firebase non riconosce automaticamente il tipo di dati
                         //quindi, lo specifichiamo e lo passiamo successivamente a getValue(). In particolare, specifichiamo che stiamo ricevendo una lista di liste di double
@@ -317,23 +274,28 @@ public class MainActivity extends AppCompatActivity {
 
         myRef4user_state.addValueEventListener(new ValueEventListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+            public void onDataChange(DataSnapshot dataSnapshot) {
                 // Questo metodo viene chiamato quando i dati nella reference dell'utente cambiano
                 String state = dataSnapshot.getValue(String.class);
-                if (state.equals("DENTRO IL GEOFENCE")){
-                    Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
-                    alertIntent.putExtra("priority", 1);
-                    sendBroadcast(alertIntent);
-                }
-                else if(state.equals("A 1 KM DAL GEOFENCE")){
-                    Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
-                    alertIntent.putExtra("priority", 2);
-                    sendBroadcast(alertIntent);
-                }
-                else if(state.equals("1-2 KM DAL GEOFENCE")){
-                    Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
-                    alertIntent.putExtra("priority", 3);
-                    sendBroadcast(alertIntent);
+                Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+                alertIntent.putExtra("recognizedActivity", recognizedActivity);
+
+                Log.d("ordine","1");
+                switch (state) {
+                    case "DENTRO IL GEOFENCE":
+
+                        alertIntent.putExtra("priority", 1);
+                        sendBroadcast(alertIntent);
+                        break;
+                    case "A 1 KM DAL GEOFENCE":
+                        alertIntent.putExtra("priority", 2);
+                        sendBroadcast(alertIntent);
+
+                        break;
+                    case "1-2 KM DAL GEOFENCE":
+                        alertIntent.putExtra("priority", 3);
+                        sendBroadcast(alertIntent);
+                        break;
                 }
 
             }
@@ -344,9 +306,6 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("Errore", "ERRORE: " + databaseError.getMessage());
             }
         });
-
-
-
 
         // Verifica se il GPS è attualmente disattivato
         locationManagerImpl = new LocationManagerImpl(this); // Passa il contesto dell'app
@@ -388,10 +347,6 @@ public class MainActivity extends AppCompatActivity {
         //setto il receiver per ottenere i risultati della misurazione
         registerReceiver(alertReceiver, alertIntentFilter);
 
-        // Prova di invio di una notifica
-        Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
-        sendBroadcast(alertIntent);
-
         // Inizializza la configurazione di OpenStreetMap
         Configuration.getInstance().load(getApplicationContext(), getSharedPreferences("OpenStreetMap", MODE_PRIVATE));
 
@@ -401,8 +356,8 @@ public class MainActivity extends AppCompatActivity {
         //ROBA PER INVIO DATI A BACKEND
 
         //url del localhost da emulatore. Se da telefono vero sostituire con 127.0.0.1:5000
-//        String BASE_URL = "http://10.0.2.2:5000";
-        String BASE_URL = "http://192.168.1.189:5000";
+        String BASE_URL = "http://10.0.2.2:5000";
+//        String BASE_URL = "http://192.168.1.189:5000";
         // Inizializza Retrofit
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
@@ -494,7 +449,7 @@ public class MainActivity extends AppCompatActivity {
             notificationManager.createNotificationChannel(alertChannel);
 
             // Creo il receiver degli alert e setto l'ìd del canale
-            alertReceiver = new AlertReceiver(alertChannel.getId());
+            alertReceiver = new AlertReceiver(this, alertChannel.getId());
         } else {
             throw new RuntimeException("PROBABLY SDK VERSION BELOW 26");
         }
@@ -542,6 +497,7 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.ACCESS_COARSE_LOCATION,
                     "android.permission.ACTIVITY_RECOGNITION",
                     "android.permission.POST_NOTIFICATIONS",
+                    "android.permission.RECORD_AUDIO",
             };
 
             List<String> permissionsToRequest = new ArrayList<>();

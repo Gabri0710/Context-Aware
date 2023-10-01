@@ -122,9 +122,20 @@ def upload_location():
             db.session.rollback()  # Annulla la transazione in caso di errore
             print(f"Errore durante l'inserimento o l'aggiornamento: {str(e)}")
         
+        # Crea un oggetto GeoJSON per l'utente corrente
+        user_geojson = {
+            "type": "Feature",
+            "properties": {
+                "username": username,
+                "activity": activity
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [longitude, latitude]
+            }
+        }
 
-        #return jsonify({"message": "Dati di posizione ricevuti correttamente."}), 200
-
+        
         user_state_ref = firebase_admin.db.reference('/user/' + username)
 
         print(user_state_ref)
@@ -221,6 +232,10 @@ def upload_location():
             user_state_ref.set('1-2 KM DAL GEOFENCE')
             return "<h1>1-2 KM DAL GEOFENCE</h1>"
 
+
+        
+
+        #TODO: RIGUARDARE, NON PENSO CHE SERVA
         nuova_notifica = {
         'testo': 'Emergenza! Terremoto in corso.',
         'coordinate': coordinate_points,
@@ -304,6 +319,40 @@ def delete_geofence():
     # Elimina il dato dal database
     id_ref.delete()
     return "<h1> Eliminato </h1>"
+
+
+
+@app.route('/get_user_data', methods=['GET'])
+def get_user_data():
+    try:
+        # Esegui una query per recuperare le informazioni sulle posizioni degli utenti dal database
+        query = text("""
+            SELECT *
+            FROM "emergency-schema"."user-information";
+        """)
+
+        # Esegui la query e ottieni i risultati
+        result = db.session.execute(query)
+
+        # Costruisci un elenco di dizionari rappresentanti i dati GeoJSON degli utenti
+        user_data = []
+        for row in result.fetchall():
+            username, posizione, activity = row
+            user_geojson = {
+                "type": "Feature",
+                "properties": {
+                    "username": username,
+                    "activity": activity
+                },
+                "posizione": posizione
+            }
+            user_data.append(user_geojson)
+
+        # Restituisci i dati degli utenti come GeoJSON al frontend
+        return jsonify(user_data), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+        .map {
+            height: 600px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h2>Geofencing-based emergency</h2>
+
+    <div id="map" class="map"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.js"></script>
+    <script type="text/javascript">
+        var osmLayer = new ol.layer.Tile({
+            source: new ol.source.OSM()
+        });
+
+        var map = new ol.Map({
+            target: 'map',
+            layers: [
+                osmLayer
+            ],
+            view: new ol.View({
+                center: ol.proj.fromLonLat([11.3394883, 44.4938134]),
+                zoom: 15
+            })
+        });
+    </script>
+</body>
+</html>
