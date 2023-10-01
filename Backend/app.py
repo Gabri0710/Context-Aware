@@ -124,7 +124,7 @@ def upload_location():
         
         
         
-        user_state_ref = firebase_admin.db.reference('/user/' + username)
+        user_state_ref = firebase_admin.db.reference('/user/' + username + "/information")
 
         print(user_state_ref)
         #creo la query per calcolare se l'utente si trova dentro il geofence
