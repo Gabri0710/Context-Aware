@@ -188,6 +188,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mAuth = FirebaseAuth.getInstance();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        this.username = currentUser.getUid();
 
         initRequestPermissionsLauncher();
 
@@ -419,8 +421,16 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
                 // Questo metodo viene chiamato quando i dati nella reference dell'utente cambiano
+                try{
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+
                 Log.d("PROVA", dataSnapshot.getKey());
-                String state = dataSnapshot.child("stato").getValue(String.class);
+                String state = "";
+                state = dataSnapshot.child("stato").getValue(String.class);
+                Log.d("STATO", state);
                 if(!(state.equals("OK"))){
                     String idGeofence = dataSnapshot.child("id_geofence").getValue(String.class);
                     Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
@@ -525,7 +535,7 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(activityRecognitionReceiver, intentFilter);
 
         // Richiedi le attività rilevate
-        activityRecognitionClient.requestActivityUpdates(1000, pendingIntent);
+        activityRecognitionClient.requestActivityUpdates(2000, pendingIntent);
 
         //inizializzo l'intentFilter per i risultati dell'Activity Recognition
         IntentFilter alertIntentFilter = new IntentFilter("ACTION_NEW_ALERT_NOTIFICATION");
