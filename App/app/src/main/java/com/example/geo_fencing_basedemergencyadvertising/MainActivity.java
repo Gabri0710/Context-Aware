@@ -29,6 +29,7 @@ import android.speech.tts.TextToSpeechService;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.ActivityRecognition;
@@ -38,6 +39,8 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -128,8 +131,8 @@ public class MainActivity extends AppCompatActivity {
     DatabaseReference myRef4geofence;
     DatabaseReference myRef4user_state;
     DatabaseReference myRef4userchild_state;
-
-    private String username = "USER-TEST2";
+    private FirebaseAuth mAuth;
+    private String username = "";
 
     //Hashmap che contiene associazione chiave valore dove chiave=id_geofence valore=punti del geofence
     Map<String, CustomGeofence> geofence = new HashMap<String, CustomGeofence>();
@@ -165,22 +168,30 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        this.username = currentUser.getUid();
+
+        // modifica a runtime della textView per visualizzare l'email
+        TextView usernameTextView = findViewById(R.id.usernameTextView);
+        usernameTextView.setText(currentUser.getEmail());
+
+    }
+
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        initAlertNotificationChannel();
+        mAuth = FirebaseAuth.getInstance();
 
         initRequestPermissionsLauncher();
 
         checkAllPermissions();
-
-
-
-
-
 
         database = FirebaseDatabase.getInstance();
         myRef4geofence = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/notifiche");
