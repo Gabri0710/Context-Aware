@@ -6,8 +6,6 @@ class CustomGeofence {
     private String description;
     private Polygon polygon;
 
-
-
     public CustomGeofence(String description, Polygon polygon) {
         this.description = description;
         this.polygon = polygon;

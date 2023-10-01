@@ -272,7 +272,7 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     // Il nodo "notifiche" è vuoto
                     System.out.println("Nessuna notifica presente nel nodo 'notifiche'.");
-                    firstOperationCompleted.complete(null);
+                    //firstOperationCompleted.complete(null);
                 }
             }
 
@@ -283,52 +283,54 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
         CompletableFuture<Void> secondOperationCompleted = firstOperationCompleted.thenRun(() -> {
-                    myRef4userchild_state.addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(DataSnapshot dataSnapshot) {
-                            // Questo metodo viene chiamato quando i dati nella reference dell'utente cambiano
-                            String state = dataSnapshot.child("stato").getValue(String.class);
-                            if(!state.equals("OK")){
-                                String idGeofence = dataSnapshot.child("id_geofence").getValue(String.class);
-                                Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
-                                alertIntent.putExtra("recognizedActivity", recognizedActivity);
-                                //Log.d("IDGEOFENCE", idGeofence);
-                                CustomGeofence cg = geofence.get(idGeofence);
-                                String alertText = cg.getDescription();
-
-                                Log.d("ordine", "1");
-                                switch (state) {
-                                    case "DENTRO IL GEOFENCE":
-                                        alertIntent.putExtra("alertText", alertText);
-                                        Log.d("ALERTTEXT", alertText);
-                                        alertIntent.putExtra("priority", 1);
-                                        sendBroadcast(alertIntent);
-                                        break;
-                                    case "A 1 KM DAL GEOFENCE":
-                                        alertIntent.putExtra("alertText", alertText);
-                                        alertIntent.putExtra("priority", 2);
-                                        sendBroadcast(alertIntent);
-
-                                        break;
-                                    case "1-2 KM DAL GEOFENCE":
-                                        alertIntent.putExtra("alertText", alertText);
-                                        alertIntent.putExtra("priority", 3);
-                                        sendBroadcast(alertIntent);
-                                        break;
-                                }
-                            }
+            myRef4userchild_state.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    // Questo metodo viene chiamato quando i dati nella reference dell'utente cambiano
+                    String state = dataSnapshot.child("stato").getValue(String.class);
+                    Log.d("ordine", "1");
+                    if(!(state.equals("OK"))){
+                        String idGeofence = dataSnapshot.child("id_geofence").getValue(String.class);
+                        Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+                        alertIntent.putExtra("recognizedActivity", recognizedActivity);
+                        //Log.d("IDGEOFENCE", idGeofence);
+                        CustomGeofence cg = geofence.get(idGeofence);
+                        String alertText = cg.getDescription();
 
 
+                        switch (state) {
+                            case "DENTRO IL GEOFENCE":
+                                alertIntent.putExtra("alertText", alertText);
+                                Log.d("ALERTTEXT", alertText);
+                                alertIntent.putExtra("priority", 1);
+                                sendBroadcast(alertIntent);
+                                break;
+                            case "A 1 KM DAL GEOFENCE":
+                                alertIntent.putExtra("alertText", alertText);
+                                alertIntent.putExtra("priority", 2);
+                                sendBroadcast(alertIntent);
+
+                                break;
+                            case "1-2 KM DAL GEOFENCE":
+                                alertIntent.putExtra("alertText", alertText);
+                                alertIntent.putExtra("priority", 3);
+                                sendBroadcast(alertIntent);
+                                break;
                         }
+                    }
 
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError databaseError) {
-                            // Gestisci eventuali errori durante il recupero dei dati dalla reference
-                            Log.d("Errore", "ERRORE: " + databaseError.getMessage());
-                        }
-                    });
-                });
+
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+                    // Gestisci eventuali errori durante il recupero dei dati dalla reference
+                    Log.d("Errore", "ERRORE: " + databaseError.getMessage());
+                }
+            });
+        });
         /*
         myRef4user_state.addValueEventListener(new ValueEventListener() {
             @Override
@@ -387,7 +389,7 @@ public class MainActivity extends AppCompatActivity {
                 // Questo metodo viene chiamato quando i dati nella reference dell'utente cambiano
                 Log.d("PROVA", dataSnapshot.getKey());
                 String state = dataSnapshot.child("stato").getValue(String.class);
-                if(!state.equals("OK")){
+                if(!(state.equals("OK"))){
                     String idGeofence = dataSnapshot.child("id_geofence").getValue(String.class);
                     Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
                     alertIntent.putExtra("recognizedActivity", recognizedActivity);
