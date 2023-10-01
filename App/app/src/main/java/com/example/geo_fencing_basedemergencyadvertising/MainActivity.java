@@ -272,7 +272,7 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     // Il nodo "notifiche" è vuoto
                     System.out.println("Nessuna notifica presente nel nodo 'notifiche'.");
-                    firstOperationCompleted.complete(null);
+                    //firstOperationCompleted.complete(null);
                 }
             }
 
@@ -283,13 +283,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
         CompletableFuture<Void> secondOperationCompleted = firstOperationCompleted.thenRun(() -> {
                     myRef4userchild_state.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
                             // Questo metodo viene chiamato quando i dati nella reference dell'utente cambiano
                             String state = dataSnapshot.child("stato").getValue(String.class);
-                            if(!state.equals("OK")){
+                            Log.d("ordine", "1");
+                            if(!(state.equals("OK"))){
                                 String idGeofence = dataSnapshot.child("id_geofence").getValue(String.class);
                                 Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
                                 alertIntent.putExtra("recognizedActivity", recognizedActivity);
@@ -297,7 +299,7 @@ public class MainActivity extends AppCompatActivity {
                                 CustomGeofence cg = geofence.get(idGeofence);
                                 String alertText = cg.getDescription();
 
-                                Log.d("ordine", "1");
+
                                 switch (state) {
                                     case "DENTRO IL GEOFENCE":
                                         alertIntent.putExtra("alertText", alertText);
@@ -387,7 +389,7 @@ public class MainActivity extends AppCompatActivity {
                 // Questo metodo viene chiamato quando i dati nella reference dell'utente cambiano
                 Log.d("PROVA", dataSnapshot.getKey());
                 String state = dataSnapshot.child("stato").getValue(String.class);
-                if(!state.equals("OK")){
+                if(!(state.equals("OK"))){
                     String idGeofence = dataSnapshot.child("id_geofence").getValue(String.class);
                     Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
                     alertIntent.putExtra("recognizedActivity", recognizedActivity);
