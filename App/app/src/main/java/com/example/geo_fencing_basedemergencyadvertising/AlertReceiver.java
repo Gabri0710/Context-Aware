@@ -45,26 +45,26 @@ public class AlertReceiver extends BroadcastReceiver {
         String notificationText = "TESTO BASE";
         int priorityLevel = NotificationCompat.PRIORITY_DEFAULT;
 
-//        String alertText = "";
+        String alertText = "";
         int recognizedActivity = 0;
         if (intent.hasExtra("priority") && intent.hasExtra("recognizedActivity")) {
             Bundle extras = intent.getExtras();
             if (extras != null) {
                 int priority = extras.getInt("priority");
                 recognizedActivity = extras.getInt("recognizedActivity");
-//                alertText = extras.getString("alertText");
+                alertText = extras.getString("alertText");
 
                 switch (priority) {
                     case 1:
-                        notificationText = "SEI DENTRO IL GEOFENCE";
+                        notificationText = "SEI DENTRO IL GEOFENCE: " + alertText;
                         priorityLevel = NotificationCompat.PRIORITY_MAX;
                         break;
                     case 2:
-                        notificationText = "SEI IN UN'AREA A DISTANZA DI 1 KM DAL GEOFENCE";
+                        notificationText = "SEI IN UN'AREA A DISTANZA DI 1 KM DAL GEOFENCE: " + alertText;
                         priorityLevel = NotificationCompat.PRIORITY_HIGH;
                         break;
                     case 3:
-                        notificationText = "SEI IN UN'AREA A DISTANZA TRA 1 e 2 KM DAL GEOFENCE";
+                        notificationText = "SEI IN UN'AREA A DISTANZA TRA 1 e 2 KM DAL GEOFENCE: " + alertText;
                         // priority level = DEFAULT
                         break;
                 }

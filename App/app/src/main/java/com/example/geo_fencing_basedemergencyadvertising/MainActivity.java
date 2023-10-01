@@ -62,6 +62,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -126,11 +127,15 @@ public class MainActivity extends AppCompatActivity {
     FirebaseDatabase database;
     DatabaseReference myRef4geofence;
     DatabaseReference myRef4user_state;
+    DatabaseReference myRef4userchild_state;
 
     private String username = "USER-TEST2";
 
     //Hashmap che contiene associazione chiave valore dove chiave=id_geofence valore=punti del geofence
-    Map<String, Polygon> geofence = new HashMap<String, Polygon>();
+    Map<String, CustomGeofence> geofence = new HashMap<String, CustomGeofence>();
+
+
+    CompletableFuture<Void> firstOperationCompleted = new CompletableFuture<>();
 
 
 
@@ -180,6 +185,7 @@ public class MainActivity extends AppCompatActivity {
         database = FirebaseDatabase.getInstance();
         myRef4geofence = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/notifiche");
         myRef4user_state = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/user/"+username);
+        myRef4userchild_state = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/user/"+username+"/information");
 
         Log.d("Firebase Reference", "Percorso della referenza: " + myRef4user_state.toString());
 
@@ -197,6 +203,7 @@ public class MainActivity extends AppCompatActivity {
                 //TESTO, LATITUDINE E LONGITUDINE. DA GESTIRE QUI SE NO VENGONO VISTI COME null
 
                 String identificativo = dataSnapshot.getKey();
+                String testo = dataSnapshot.child("testo").getValue(String.class);
 //                alertText = dataSnapshot.child("testo").getValue(String.class);
 
                 //classe di utilità fornita da Firebase SDK per Java per aiutare nella deserializzazione dei dati da Firebase Realtime Database.
@@ -207,8 +214,8 @@ public class MainActivity extends AppCompatActivity {
                 //array di coordinate. Per ogni punto, in posizione i latitudine, i+1 longitudine
                 ArrayList<ArrayList<Double>> coordinateList = dataSnapshot.child("coordinate").getValue(t);
 
-                drawGeofence(identificativo, coordinateList);
-
+                drawGeofence(identificativo, testo, coordinateList);
+                Log.d("ORDINE","5");
             }
 
             @Override
@@ -230,9 +237,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        //IMPORTANTE!! TODO: VERIFICARE SE IL FUNZIONAMENTO VA BENE, PRIMA C'ERA addListenerForSingleValueEvent
         myRef4geofence.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+                Log.d("ordine","3");
                 // Il metodo onDataChange verrà chiamato quando i dati nel nodo "notifiche" cambiano
                 // oppure quando il listener viene aggiunto per la prima volta e i dati esistono già nel nodo.
 
@@ -242,11 +251,12 @@ public class MainActivity extends AppCompatActivity {
                     for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
                         // Ottieni le informazioni da ciascun figlio
                         String identificativo = childSnapshot.getKey();
+                        String testo = childSnapshot.child("testo").getValue(String.class);
 //                        alertText = childSnapshot.child("testo").getValue(String.class);
 //
-//                        Log.d("TESYTOOOO", alertText);
 
                         Log.d("ordine","2");
+                        Log.d("TESTO", testo);
                         //classe di utilità fornita da Firebase SDK per Java per aiutare nella deserializzazione dei dati da Firebase Realtime Database.
                         //È utilizzato quando si desidera deserializzare dati generici, come liste ecc, perché firebase non riconosce automaticamente il tipo di dati
                         //quindi, lo specifichiamo e lo passiamo successivamente a getValue(). In particolare, specifichiamo che stiamo ricevendo una lista di liste di double
@@ -256,11 +266,13 @@ public class MainActivity extends AppCompatActivity {
                         ArrayList<ArrayList<Double>> coordinateList = childSnapshot.child("coordinate").getValue(t);
 
                         Log.d("TROVATO GEOFENCE", "identificativo: " + identificativo + " " + coordinateList);
-                        drawGeofence(identificativo, coordinateList);
+                        drawGeofence(identificativo, testo, coordinateList);
+                        firstOperationCompleted.complete(null);
                     }
                 } else {
                     // Il nodo "notifiche" è vuoto
                     System.out.println("Nessuna notifica presente nel nodo 'notifiche'.");
+                    firstOperationCompleted.complete(null);
                 }
             }
 
@@ -271,28 +283,81 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        CompletableFuture<Void> secondOperationCompleted = firstOperationCompleted.thenRun(() -> {
+                    myRef4userchild_state.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            // Questo metodo viene chiamato quando i dati nella reference dell'utente cambiano
+                            String state = dataSnapshot.child("stato").getValue(String.class);
+                            if(!state.equals("OK")){
+                                String idGeofence = dataSnapshot.child("id_geofence").getValue(String.class);
+                                Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+                                alertIntent.putExtra("recognizedActivity", recognizedActivity);
+                                //Log.d("IDGEOFENCE", idGeofence);
+                                CustomGeofence cg = geofence.get(idGeofence);
+                                String alertText = cg.getDescription();
 
+                                Log.d("ordine", "1");
+                                switch (state) {
+                                    case "DENTRO IL GEOFENCE":
+                                        alertIntent.putExtra("alertText", alertText);
+                                        Log.d("ALERTTEXT", alertText);
+                                        alertIntent.putExtra("priority", 1);
+                                        sendBroadcast(alertIntent);
+                                        break;
+                                    case "A 1 KM DAL GEOFENCE":
+                                        alertIntent.putExtra("alertText", alertText);
+                                        alertIntent.putExtra("priority", 2);
+                                        sendBroadcast(alertIntent);
+
+                                        break;
+                                    case "1-2 KM DAL GEOFENCE":
+                                        alertIntent.putExtra("alertText", alertText);
+                                        alertIntent.putExtra("priority", 3);
+                                        sendBroadcast(alertIntent);
+                                        break;
+                                }
+                            }
+
+
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+                            // Gestisci eventuali errori durante il recupero dei dati dalla reference
+                            Log.d("Errore", "ERRORE: " + databaseError.getMessage());
+                        }
+                    });
+                });
+        /*
         myRef4user_state.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 // Questo metodo viene chiamato quando i dati nella reference dell'utente cambiano
-                String state = dataSnapshot.getValue(String.class);
+                String state = dataSnapshot.child("stato").getValue(String.class);
+                String idGeofence = dataSnapshot.child("id_geofence").getValue(String.class);
                 Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
                 alertIntent.putExtra("recognizedActivity", recognizedActivity);
+                //Log.d("IDGEOFENCE", idGeofence);
+                //CustomGeofence cg = geofence.get(idGeofence);
+                //String alertText = cg.getDescription();
 
-                Log.d("ordine","1");
+                Log.d("ordine", "1");
                 switch (state) {
                     case "DENTRO IL GEOFENCE":
-
+                        //alertIntent.putExtra("alertText", alertText);
+                        //Log.d("ALERTTEXT", alertText);
                         alertIntent.putExtra("priority", 1);
                         sendBroadcast(alertIntent);
                         break;
                     case "A 1 KM DAL GEOFENCE":
+                        //alertIntent.putExtra("alertText", alertText);
                         alertIntent.putExtra("priority", 2);
                         sendBroadcast(alertIntent);
 
                         break;
                     case "1-2 KM DAL GEOFENCE":
+                        //alertIntent.putExtra("alertText", alertText);
                         alertIntent.putExtra("priority", 3);
                         sendBroadcast(alertIntent);
                         break;
@@ -306,6 +371,71 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("Errore", "ERRORE: " + databaseError.getMessage());
             }
         });
+
+         */
+
+        myRef4user_state.addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
+                // Questo metodo viene chiamato quando viene aggiunto un nuovo figlio al nodo "notifiche"
+                // Puoi gestire qui la notifica o l'azione da intraprendere quando viene aggiunto un nuovo valore.
+
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
+                // Questo metodo viene chiamato quando i dati nella reference dell'utente cambiano
+                Log.d("PROVA", dataSnapshot.getKey());
+                String state = dataSnapshot.child("stato").getValue(String.class);
+                if(!state.equals("OK")){
+                    String idGeofence = dataSnapshot.child("id_geofence").getValue(String.class);
+                    Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+                    alertIntent.putExtra("recognizedActivity", recognizedActivity);
+                    //Log.d("IDGEOFENCE", idGeofence);
+                    CustomGeofence cg = geofence.get(idGeofence);
+                    String alertText = cg.getDescription();
+
+                    Log.d("ordine","1");
+                    switch (state) {
+                        case "DENTRO IL GEOFENCE":
+                            alertIntent.putExtra("alertText", alertText);
+                            //Log.d("ALERTTEXT", alertText);
+                            alertIntent.putExtra("priority", 1);
+                            sendBroadcast(alertIntent);
+                            break;
+                        case "A 1 KM DAL GEOFENCE":
+                            alertIntent.putExtra("alertText", alertText);
+                            alertIntent.putExtra("priority", 2);
+                            sendBroadcast(alertIntent);
+
+                            break;
+                        case "1-2 KM DAL GEOFENCE":
+                            alertIntent.putExtra("alertText", alertText);
+                            alertIntent.putExtra("priority", 3);
+                            sendBroadcast(alertIntent);
+                            break;
+                    }
+                }
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+                // Questo metodo viene chiamato quando un figlio viene rimosso dal nodo "notifiche"
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String previousChildName) {
+                // Questo metodo viene chiamato quando un figlio nel nodo "notifiche" viene spostato
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // Gestisci eventuali errore
+                Log.d("ERRORE", "ERRORE: " + databaseError.getMessage());
+            }
+        });
+
 
         // Verifica se il GPS è attualmente disattivato
         locationManagerImpl = new LocationManagerImpl(this); // Passa il contesto dell'app
@@ -683,7 +813,7 @@ public class MainActivity extends AppCompatActivity {
     }
     */
 
-    private void drawGeofence(String identificativo, ArrayList<ArrayList<Double>> points){
+    private void drawGeofence(String identificativo, String testo, ArrayList<ArrayList<Double>> points){
         ArrayList<GeoPoint> polygonPoints = new ArrayList<>();
         for (int i=0;i<points.size(); i++){
             ArrayList<Double> coppiaCoordinate = points.get(i);
@@ -717,14 +847,18 @@ public class MainActivity extends AppCompatActivity {
         polygon.setStrokeColor(Color.RED); // Colore del bordo
         polygon.setStrokeWidth(2); // Larghezza del bordo
 
-        geofence.put(identificativo, polygon);
+        CustomGeofence cg = new CustomGeofence(testo, polygon);
+        geofence.put(identificativo, cg);
+
+        Log.d("ORDINE", "4");
 
         mapView.getOverlayManager().add(polygon);
     }
 
 
     private void deleteGeofence(String identificativo){
-        Polygon polygon = geofence.get(identificativo);
+        CustomGeofence cg = geofence.get(identificativo);
+        Polygon polygon = cg.getPolygon();
         mapView.getOverlayManager().remove(polygon);
 
         geofence.remove(identificativo);
