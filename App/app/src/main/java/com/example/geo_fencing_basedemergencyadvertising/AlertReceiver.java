@@ -86,7 +86,7 @@ public class AlertReceiver extends BroadcastReceiver {
         // Invio della notifica tramite Notification Manager
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(getUniqueNotificationId(), builder.build());
-
+        Log.d("TESTSEIDENTRO", "NOTIFICA INVIATA");
         if (recognizedActivity == 2) { // IN VEHICLE
             // Inizializzazione nel metodo onCreate o in un punto appropriato della tua Activity o Fragment
             // Per riprodurre il testo come voce

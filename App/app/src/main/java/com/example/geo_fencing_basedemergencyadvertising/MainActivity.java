@@ -191,6 +191,8 @@ public class MainActivity extends AppCompatActivity {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         this.username = currentUser.getUid();
 
+        initAlertNotificationChannel();
+
         initRequestPermissionsLauncher();
 
         checkAllPermissions();
@@ -330,7 +332,7 @@ public class MainActivity extends AppCompatActivity {
                         }
 
 
-
+                        Log.d("NOTIFICATION TEST", "HERE");
 
                         switch (state) {
                             case "DENTRO IL GEOFENCE":
@@ -465,6 +467,7 @@ public class MainActivity extends AppCompatActivity {
                             alertIntent.putExtra("coordinate", coordinate);
                             alertIntent.putExtra("priority", 1);
                             sendBroadcast(alertIntent);
+                            Log.d("TESTSEIDENTRO", "IL GEOFENCE");
                             break;
                         case "A 1 KM DAL GEOFENCE":
                             alertIntent.putExtra("alertText", alertText);
