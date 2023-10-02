@@ -1,0 +1,38 @@
+<html lang="en">
+  <head>
+    <link rel="stylesheet" href=".\ol\ol.css" type="text/css">
+    <style>
+      .map {
+        height: 550px;
+        width: 100%;
+      }
+    </style>
+    <script src=".\ol\dist\ol.js" type="text/javascript"> </script>
+    <script src=".\script.js"></script>
+
+    <title>OpenLayers example</title>
+  </head>
+
+
+  <body>
+    <h2>Geofence emergency admin setup</h2>
+
+    <form id="addGeofenceForm">
+      <label for="inputData">Inserisci Testo dell'allarme da inserire e seleziona i punti su mappa:</label>
+      <input type="text" id="inputData" name="testo_allarme">
+    </form>
+
+    <form id="deleteGeofenceForm">
+      <label for="inputData">Inserisci id dell'allarme da rimuovere:</label>
+      <input type="text" id="inputData" name="id_allarme">
+      <button type="submit">Cancella</button>
+    </form>
+
+
+    <div id="map" class="map"></div>
+    <br>
+
+    <button type="submit" form="addGeofenceForm">Inserisci allarme</button>
+
+  </body>
+</html>

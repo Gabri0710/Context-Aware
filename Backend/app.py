@@ -6,8 +6,13 @@ from sqlalchemy.sql import text
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
+from flask_cors import CORS
 
 app = Flask(__name__)
+
+#UTILE PER TESTARE SULLO STESSO DOMINIO MA PORTE DIVERSE, CORS policy
+CORS(app)
+
 
 # Configuro la connessione con il database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost/geofance-emergency'
@@ -253,12 +258,23 @@ def upload_location():
 
 
 
-@app.route('/add_geofence')
+@app.route('/add_geofence', methods=['POST'])
 def add_geofence():
     # lista di liste contenente coppie [latitudine, longitudine] del geofence dell'allarme
-    coordinate_points = [[44.493760, 11.343032], [44.493760,11.343234], [44.493911, 11.343437], [44.494072, 11.343437], [44.494222, 11.343234], [44.494222, 11.343032]]
+    #coordinate_points = [[44.493760, 11.343032], [44.493760,11.343234], [44.493911, 11.343437], [44.494072, 11.343437], [44.494222, 11.343234], [44.494222, 11.343032]]
+    testo_allarme = request.form.get('testo_allarme', 'ALLARME')
+    coordinate = request.form.getlist('coordinates[]')
+    coordinate_points = []
     
-
+    for coord in coordinate:
+        lon_string, lat_string = coord.split(',')
+        lat = float(lat_string)
+        lon = float(lon_string)
+        tmp = []
+        tmp.append(lat)
+        tmp.append(lon)
+        coordinate_points.append(tmp)
+    
     # Scrivi la notifica nel database sotto il nodo "notifiche" (solo identificatore univoco della notifica, non ancora i dati)
     nuova_notifica_ref = notifiche_ref.push()
 
@@ -301,19 +317,20 @@ def add_geofence():
     
 
     nuova_notifica = {
-    'testo': 'Emergenza! Terremoto in corso.',
+    'testo': testo_allarme,
     'coordinate': coordinate_points,
     }
 
     #aggiungo alla notifica inserita su firebase precedentemente i dati specificati (testo e coordinate)
     nuova_notifica_ref.set(nuova_notifica)
     
-    return "<h1>Insert successfull</h1>"
+    return jsonify({'ok': 'record inserito'}), 200 
 
 
 @app.route('/delete_geofence', methods=['POST'])
 def delete_geofence():
-    id_geofence = request.form['id_geofence']
+    id_geofence = request.form.get('id_allarme')
+    
 
     id_ref = notifiche_ref.child(id_geofence)
 
@@ -339,7 +356,7 @@ def delete_geofence():
         db.session.rollback()  # Annulla la transazione in caso di errore
         print(f"Errore durante l'eliminazione: {str(e)}")
     
-    return "<h1> Eliminato </h1>"
+    return jsonify({'ok': 'record eliminato'}), 200 
 
 
 
@@ -375,6 +392,14 @@ def get_user_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+@app.route('/testforfrontend', methods=['POST'])
+def testforfrontend():
+    data_from_frontend = request.form.get('data')  # Ottieni i dati dal campo 'data' del modulo inviato (campo specificato sotto "name")
+    
+    print(data_from_frontend)
+    response_data = {'message': 'Messaggio ricevuvto: ' + data_from_frontend}
+    return jsonify(response_data), 200  
 
 
 if __name__ == '__main__':
