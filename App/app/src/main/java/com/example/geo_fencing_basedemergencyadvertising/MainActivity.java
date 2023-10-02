@@ -191,6 +191,8 @@ public class MainActivity extends AppCompatActivity {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         this.username = currentUser.getUid();
 
+        initAlertNotificationChannel();
+
         initRequestPermissionsLauncher();
 
         checkAllPermissions();
@@ -328,9 +330,6 @@ public class MainActivity extends AppCompatActivity {
 
                             // Ora puoi utilizzare latitude e longitude come vuoi
                         }
-
-
-
 
                         switch (state) {
                             case "DENTRO IL GEOFENCE":
