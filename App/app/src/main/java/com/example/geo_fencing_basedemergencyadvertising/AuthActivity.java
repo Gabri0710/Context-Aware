@@ -85,9 +85,6 @@ public class AuthActivity extends AppCompatActivity {
     }
 
     private void goToMainActivity(){
-        Intent intent = new Intent(this, MainActivity.class);
-        // passo alla main activity lo Uid dell'utente che ha effettuato il login
-        intent.putExtra("username", mAuth.getCurrentUser().getUid());
-        startActivity(intent);
+        startActivity(new Intent(this, MainActivity.class));
     }
 }

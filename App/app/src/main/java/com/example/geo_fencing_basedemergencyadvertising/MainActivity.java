@@ -29,6 +29,7 @@ import android.speech.tts.TextToSpeechService;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -132,6 +133,8 @@ public class MainActivity extends AppCompatActivity {
     DatabaseReference myRef4user_state;
     DatabaseReference myRef4userchild_state;
     private FirebaseAuth mAuth;
+    private Button authBtn;
+    private TextView usernameTextView;
     private String username = "";
 
     //Hashmap che contiene associazione chiave valore dove chiave=id_geofence valore=punti del geofence
@@ -168,28 +171,59 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    public MainActivity() {
+    }
+
     @Override
     public void onStart() {
         super.onStart();
 
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        this.username = currentUser.getUid();
-
-        // modifica a runtime della textView per visualizzare l'email
-        TextView usernameTextView = findViewById(R.id.usernameTextView);
-        usernameTextView.setText(currentUser.getEmail());
+//        FirebaseUser currentUser = mAuth.getCurrentUser();
+//        this.username = currentUser.getUid();
 
     }
+
+    // Update authBtn's text and onClickListener
+    private void updateAuthBtn(FirebaseUser currentUser) {
+
+        if (currentUser != null) { // if user's already logged
+            authBtn.setOnClickListener(null);
+            this.username = currentUser.getUid();
+            // modifica a runtime della textView per visualizzare l'email
+            this.usernameTextView.setText(currentUser.getEmail());
+            authBtn.setOnClickListener(view -> { // if user clicks logout btn
+                FirebaseAuth.getInstance().signOut();
+                Toast.makeText(getApplicationContext(), "REGISTRATI O FAI IL LOGIN PER USARE L'APP", Toast.LENGTH_SHORT).show();
+                goToAuthActivity();
+            });
+        } else { // if user is not already logged
+            Toast.makeText(getApplicationContext(), "REGISTRATI O FAI IL LOGIN PER USARE L'APP", Toast.LENGTH_SHORT).show();
+            goToAuthActivity();
+
+        }
+
+    }
+
+    private void goToAuthActivity(){
+        startActivity(new Intent(this, AuthActivity.class));
+    }
+
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        usernameTextView = findViewById(R.id.usernameTextView);
+        authBtn = findViewById(R.id.authBtn);
 
         mAuth = FirebaseAuth.getInstance();
+
         FirebaseUser currentUser = mAuth.getCurrentUser();
-        this.username = currentUser.getUid();
+
+        updateAuthBtn(currentUser);
+
+
 
         initAlertNotificationChannel();
 
