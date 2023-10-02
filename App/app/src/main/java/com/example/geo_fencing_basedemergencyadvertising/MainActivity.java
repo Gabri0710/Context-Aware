@@ -332,7 +332,9 @@ public class MainActivity extends AppCompatActivity {
                         }
 
 
+
                         Log.d("NOTIFICATION TEST", "HERE");
+
 
                         switch (state) {
                             case "DENTRO IL GEOFENCE":
