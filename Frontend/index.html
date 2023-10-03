@@ -19,17 +19,18 @@
 
     <form id="addGeofenceForm">
       <label for="inputData">Inserisci Testo dell'allarme da inserire e seleziona i punti su mappa:</label>
-      <input type="text" id="inputData" name="testo_allarme">
+      <input type="text" id="inputData" name="testo_allarme" autocomplete="off">
     </form>
 
     <form id="deleteGeofenceForm">
       <label for="inputData">Inserisci id dell'allarme da rimuovere:</label>
-      <input type="text" id="inputData" name="id_allarme">
+      <input type="text" id="inputData" name="id_allarme" autocomplete="off">
       <button type="submit">Cancella</button>
     </form>
 
     <button id="viewWalkingUserButton">Visualizza gli utenti a piedi</button>
     <button id="viewCarUserButton">Visualizza gli utenti in macchina</button>
+    <button id="viewGeofence">Visualizza zone di allarme</button>
 
     <div id="map" class="map"></div>
     <br>

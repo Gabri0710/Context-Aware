@@ -427,6 +427,67 @@ def get_car_user_data():
 
 
 
+import binascii
+from shapely import wkb
+@app.route('/get_geofence', methods=['GET'])
+def get_geofence():
+    try:
+        # Eseguo una query per recuperare le informazioni sulle posizioni degli utenti dal database
+        query = text("""
+            SELECT polygon
+            FROM "emergency-schema"."geofence-information"
+        """)
+
+        # Eseguo la query e ottieni i risultati
+        result = db.session.execute(query)
+
+        polygons = [row[0] for row in result.fetchall()]
+        polygons_frontend_format = []
+
+        for p in polygons:
+            # Decodifica l'HEXEWKB nella rappresentazione binaria WKB
+            binary_polygon = binascii.unhexlify(p)
+
+            # Crea un oggetto poligono da WKB usando shapely
+            polygon = wkb.loads(binary_polygon)
+
+            # Estrai le coordinate del poligono
+            coordinates = polygon.exterior.coords.xy
+
+            tmp = []
+            # Prendo le coordinate (lon, lat)
+            for lon, lat in zip(coordinates[0], coordinates[1]):
+                tmp.append([lon, lat])
+
+            polygons_frontend_format.append(tmp)
+
+
+        points_geojson = []
+        for record in polygons_frontend_format:
+            tmp = []
+            for lon, lat in record:
+                point_geojson = {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [lon, lat]
+                        }
+                    }
+                tmp.append(point_geojson)
+
+            points_geojson.append(tmp)
+        
+        print("POINTS_GEOJSON:")
+        print(points_geojson)
+
+        # Restituisci i dati delle posizioni degli utenti come GeoJSON al frontend
+        return jsonify(points_geojson), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
     
 
 

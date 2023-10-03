@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
+
+    loadGeofence();
+
     //oggetto Feature dove memorizzo i punti scelti
     var selectedPoints = new ol.Collection();
 
@@ -36,6 +39,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var carUserSource;
     var walkingUserLayer;
     var carUserLayer;
+    var geofenceLayer;
+    var userVisualization = "CAR";
     
 
     var map = new ol.Map({
@@ -55,6 +60,140 @@ document.addEventListener('DOMContentLoaded', function() {
         var pointFeature = new ol.Feature(new ol.geom.Point(coordinate));
         selectedPoints.push(pointFeature);
     });
+
+
+    function updateUsersLocation(){
+        if (userVisualization=="WALKING"){
+                fetch("http://localhost:5000/get_walking_user_data", {
+                method: "GET"
+                })
+                .then(response => response.json())
+                .then(data => {
+                    map.removeLayer(carUserLayer);
+                    map.removeLayer(walkingUserLayer);
+                    //console.log(data)
+                    var walkingUserFeatures = data.map(item => {
+                        const coordinates = item.geometry.coordinates;
+                        const point = new ol.Feature({
+                            geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
+                        });
+                        return point;
+                    });
+                
+                    // Creazione del livello vettoriale
+                    walkingUserSource = new ol.source.Vector({
+                        features: walkingUserFeatures,
+                    });
+                    
+                
+                    walkingUserLayer = new ol.layer.Vector({
+                        source: walkingUserSource,
+                        style: new ol.style.Style({
+                            image: new ol.style.Circle({
+                                radius: 6,
+                                fill: new ol.style.Fill({
+                                    color: 'blue', // Colore del punto
+                                }),
+                            }),
+                        }),
+                    });
+                
+                    // Aggiungi il livello vettoriale alla mappa
+                    map.addLayer(walkingUserLayer);
+                    userVisualization = "WALKING";
+                })
+                .catch(error => {
+                    // Gestisci gli errori
+                    console.error("Errore:", error);
+                });
+        }
+        else{
+                fetch("http://localhost:5000/get_car_user_data", {
+                method: "GET"
+                })
+                .then(response => response.json())
+                .then(data => {
+                    map.removeLayer(walkingUserLayer);
+                    map.removeLayer(carUserLayer);
+                    console.log(data)
+                    var carUserFeatures = data.map(item => {
+                        const coordinates = item.geometry.coordinates;
+                        const point = new ol.Feature({
+                            geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
+                        });
+                        return point;
+                    });
+                
+                    // Creazione del livello vettoriale
+                    carUserSource = new ol.source.Vector({
+                        features: carUserFeatures,
+                    });
+                
+                    carUserLayer = new ol.layer.Vector({
+                        source: carUserSource,
+                        style: new ol.style.Style({
+                            image: new ol.style.Circle({
+                                radius: 6,
+                                fill: new ol.style.Fill({
+                                    color: 'blue', // Colore del punto
+                                }),
+                            }),
+                        }),
+                    });
+                
+                    // Aggiungi il livello vettoriale alla mappa
+                    map.addLayer(carUserLayer);
+                    userVisualization = "CAR";
+                })
+                .catch(error => {
+                    // Gestisci gli errori
+                    console.error("Errore:", error);
+                });
+        }
+        
+
+
+    }
+
+
+    function loadGeofence(){
+        fetch("http://localhost:5000/get_geofence", {
+            method: "GET"
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            map.removeLayer(geofenceLayer);
+            var polygonsFeatures = [];
+    
+            data.forEach(function(path) {
+                var coordinates = path.map(function(point) {
+                    return ol.proj.fromLonLat(point.geometry.coordinates);
+                });
+    
+                var polygon = new ol.geom.Polygon([coordinates]);
+                var singlePolygonFeature = new ol.Feature(polygon);
+                polygonsFeatures.push(singlePolygonFeature);
+            });
+    
+            geofenceLayer = new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    features: polygonsFeatures
+                })
+            });
+    
+           
+            map.addLayer(geofenceLayer);
+        })
+        .catch(error => {
+            // Gestisci gli errori
+            console.error("Errore:", error);
+        });
+    }
+
+
+
+
 
     document.getElementById("addGeofenceForm").addEventListener("submit", function(event) {
         event.preventDefault(); // impedisce alla pagina di ricaricarsi quando viene inviato il modulo
@@ -83,7 +222,11 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             // Gestisco la risposta dal backend
-            console.log(data);
+            //console.log(data);
+            //map.removeLayer(pointsLayer);
+            //map.removeLayer(geofenceLayer);
+            selectedPoints.clear();
+            loadGeofence();
         })
         .catch(error => {
             // Gestisco gli errori
@@ -106,6 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             // Gestisci la risposta dal backend
             console.log(data);
+            loadGeofence();
         })
         .catch(error => {
             // Gestisci gli errori
@@ -115,89 +259,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     document.getElementById("viewWalkingUserButton").addEventListener("click", function() {
-        fetch("http://localhost:5000/get_walking_user_data", {
-            method: "GET"
-        })
-        .then(response => response.json())
-        .then(data => {
-            map.removeLayer(carUserLayer)
-            //console.log(data)
-            var walkingUserFeatures = data.map(item => {
-                const coordinates = item.geometry.coordinates;
-                const point = new ol.Feature({
-                    geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
-                });
-                return point;
-            });
-        
-            // Creazione del livello vettoriale
-            walkingUserSource = new ol.source.Vector({
-                features: walkingUserFeatures,
-            });
-            
-        
-            walkingUserLayer = new ol.layer.Vector({
-                source: walkingUserSource,
-                style: new ol.style.Style({
-                    image: new ol.style.Circle({
-                        radius: 6,
-                        fill: new ol.style.Fill({
-                            color: 'blue', // Colore del punto
-                        }),
-                    }),
-                }),
-            });
-        
-            // Aggiungi il livello vettoriale alla mappa
-            map.addLayer(walkingUserLayer);
-        })
-        .catch(error => {
-            // Gestisci gli errori
-            console.error("Errore:", error);
-        });
+        userVisualization = "WALKING";
+        updateUsersLocation();
     });
 
 
     document.getElementById("viewCarUserButton").addEventListener("click", function() {
-        fetch("http://localhost:5000/get_car_user_data", {
-            method: "GET"
-        })
-        .then(response => response.json())
-        .then(data => {
-            map.removeLayer(walkingUserLayer)
-            //console.log(data)
-            var carUserFeatures = data.map(item => {
-                const coordinates = item.geometry.coordinates;
-                const point = new ol.Feature({
-                    geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
-                });
-                return point;
-            });
-        
-            // Creazione del livello vettoriale
-            carUserSource = new ol.source.Vector({
-                features: carUserFeatures,
-            });
-        
-            carUserLayer = new ol.layer.Vector({
-                source: carUserSource,
-                style: new ol.style.Style({
-                    image: new ol.style.Circle({
-                        radius: 6,
-                        fill: new ol.style.Fill({
-                            color: 'blue', // Colore del punto
-                        }),
-                    }),
-                }),
-            });
-        
-            // Aggiungi il livello vettoriale alla mappa
-            map.addLayer(carUserLayer);
-        })
-        .catch(error => {
-            // Gestisci gli errori
-            console.error("Errore:", error);
-        });
+        userVisualization = "CAR";
+        updateUsersLocation();
+    });
+
+    document.getElementById("viewGeofence").addEventListener("click", function() {
+        loadGeofence()
     });
 
 
