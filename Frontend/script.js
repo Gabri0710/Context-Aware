@@ -123,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                         return point;
                     });
+                    
                 
                     // Creazione del livello vettoriale
                     carUserSource = new ol.source.Vector({
@@ -170,15 +171,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 var coordinates = path.map(function(point) {
                     return ol.proj.fromLonLat(point.geometry.coordinates);
                 });
-    
+                
+                //var nUsers = data.properties.n_users;
+                //console.log.data(nUsers);
+
                 var polygon = new ol.geom.Polygon([coordinates]);
                 var singlePolygonFeature = new ol.Feature(polygon);
                 polygonsFeatures.push(singlePolygonFeature);
             });
-    
+
+            
+
+            //var colorNormalization = nUsers/100
+            var colorNormalization = 0.2
+
             geofenceLayer = new ol.layer.Vector({
                 source: new ol.source.Vector({
                     features: polygonsFeatures
+                }),
+                style: new ol.style.Style({
+                    fill: new ol.style.Fill({
+                        
+                        color: 'rgba('+255*colorNormalization+','+255*(1-colorNormalization)+', 0, 0.2)' // Colore di riempimento del poligono (rosso con opacità al 20%)
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: 'red', // Colore del bordo del poligono
+                        width: 2 // Larghezza del bordo
+                    })
                 })
             });
     

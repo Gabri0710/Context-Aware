@@ -461,6 +461,19 @@ def get_geofence():
 
             polygons_frontend_format.append(tmp)
 
+        '''
+        query = text("""
+           SELECT g.id, COUNT(u.username) as n_users_inside
+            FROM "emergency-schema"."geofence-information" as g
+            LEFT JOIN "emergency-schema"."user-information" as u
+            ON ST_Contains(g.polygon, u.posizione)
+            GROUP BY g.id;
+        """)
+        
+
+        # Eseguo la query e ottieni i risultati
+        result = db.session.execute(query)       
+        '''
 
         points_geojson = []
         for record in polygons_frontend_format:
@@ -472,6 +485,9 @@ def get_geofence():
                             "type": "Point",
                             "coordinates": [lon, lat]
                         }
+                        #"properties": {
+                        #"n_users": n  # Aggiungi il valore numerico n qui
+                        #}
                     }
                 tmp.append(point_geojson)
 
