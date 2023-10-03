@@ -1,15 +1,15 @@
 document.addEventListener('DOMContentLoaded', function() {
     //oggetto Feature dove memorizzo i punti scelti
-    var selectedFeatures = new ol.Collection();
+    var selectedPoints = new ol.Collection();
 
     //oggetto Source, mi serve per prendere in input delle Feature e passarle a un Layer successivamente
-    var vectorSource = new ol.source.Vector({
-        features: selectedFeatures
+    var vectorPoints = new ol.source.Vector({
+        features: selectedPoints
     });
 
     //Layer dei punti scelti
-    var vectorLayer = new ol.layer.Vector({
-        source: vectorSource,
+    var pointsLayer = new ol.layer.Vector({
+        source: vectorPoints,
         style: new ol.style.Style({
             image: new ol.style.Circle({
               radius: 6,
@@ -31,11 +31,16 @@ document.addEventListener('DOMContentLoaded', function() {
         })
     });
     osmLayer.setVisible(true);
+
+    var walkingUserSource;
+    var carUserSource;
+    var walkingUserLayer;
+    var carUserLayer;
     
 
     var map = new ol.Map({
         target: 'map',
-        layers: [osmLayer, vectorLayer], 
+        layers: [osmLayer, pointsLayer], 
         view: new ol.View({
             center: ol.proj.fromLonLat([11.3394883, 44.4938134]),
             zoom: 13, 
@@ -48,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
     map.on('click', function(event) {
         var coordinate = event.coordinate;
         var pointFeature = new ol.Feature(new ol.geom.Point(coordinate));
-        selectedFeatures.push(pointFeature);
+        selectedPoints.push(pointFeature);
     });
 
     document.getElementById("addGeofenceForm").addEventListener("submit", function(event) {
@@ -60,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var projection3857 = ol.proj.get('EPSG:3857');
         var projection4326 = ol.proj.get('EPSG:4326');
 
-        selectedFeatures.forEach(function(feature) {
+        selectedPoints.forEach(function(feature) {
             // Ottengo le coordinate della feature
             
             var coordinates = ol.proj.transform(feature.getGeometry().getCoordinates(), projection3857, projection4326);
@@ -107,4 +112,93 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error("Errore:", error);
         });
     });
+
+
+    document.getElementById("viewWalkingUserButton").addEventListener("click", function() {
+        fetch("http://localhost:5000/get_walking_user_data", {
+            method: "GET"
+        })
+        .then(response => response.json())
+        .then(data => {
+            map.removeLayer(carUserLayer)
+            //console.log(data)
+            var walkingUserFeatures = data.map(item => {
+                const coordinates = item.geometry.coordinates;
+                const point = new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
+                });
+                return point;
+            });
+        
+            // Creazione del livello vettoriale
+            walkingUserSource = new ol.source.Vector({
+                features: walkingUserFeatures,
+            });
+            
+        
+            walkingUserLayer = new ol.layer.Vector({
+                source: walkingUserSource,
+                style: new ol.style.Style({
+                    image: new ol.style.Circle({
+                        radius: 6,
+                        fill: new ol.style.Fill({
+                            color: 'blue', // Colore del punto
+                        }),
+                    }),
+                }),
+            });
+        
+            // Aggiungi il livello vettoriale alla mappa
+            map.addLayer(walkingUserLayer);
+        })
+        .catch(error => {
+            // Gestisci gli errori
+            console.error("Errore:", error);
+        });
+    });
+
+
+    document.getElementById("viewCarUserButton").addEventListener("click", function() {
+        fetch("http://localhost:5000/get_car_user_data", {
+            method: "GET"
+        })
+        .then(response => response.json())
+        .then(data => {
+            map.removeLayer(walkingUserLayer)
+            //console.log(data)
+            var carUserFeatures = data.map(item => {
+                const coordinates = item.geometry.coordinates;
+                const point = new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
+                });
+                return point;
+            });
+        
+            // Creazione del livello vettoriale
+            carUserSource = new ol.source.Vector({
+                features: carUserFeatures,
+            });
+        
+            carUserLayer = new ol.layer.Vector({
+                source: carUserSource,
+                style: new ol.style.Style({
+                    image: new ol.style.Circle({
+                        radius: 6,
+                        fill: new ol.style.Fill({
+                            color: 'blue', // Colore del punto
+                        }),
+                    }),
+                }),
+            });
+        
+            // Aggiungi il livello vettoriale alla mappa
+            map.addLayer(carUserLayer);
+        })
+        .catch(error => {
+            // Gestisci gli errori
+            console.error("Errore:", error);
+        });
+    });
+
+
 });

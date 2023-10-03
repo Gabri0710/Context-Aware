@@ -131,7 +131,7 @@ def upload_location():
         
         user_state_ref = firebase_admin.db.reference('/user/' + username + "/information")
 
-        print(user_state_ref)
+        
         #creo la query per calcolare se l'utente si trova dentro il geofence
         query = text("""
             SELECT ui.username, gi.id as geofence_id
@@ -360,37 +360,74 @@ def delete_geofence():
 
 
 
-@app.route('/get_user_data', methods=['GET'])
-def get_user_data():
+@app.route('/get_walking_user_data', methods=['GET'])
+def get_waling_user_data():
     try:
-        # Esegui una query per recuperare le informazioni sulle posizioni degli utenti dal database
+        # Eseguo una query per recuperare le informazioni sulle posizioni degli utenti dal database
         query = text("""
-            SELECT *
-            FROM "emergency-schema"."user-information";
+            SELECT ST_X(posizione) as lon, ST_Y(posizione) as lat
+            FROM "emergency-schema"."user-information"
+            WHERE activity = 'WALKING';
         """)
 
-        # Esegui la query e ottieni i risultati
+        # Eseguo la query e ottieni i risultati
         result = db.session.execute(query)
 
-        # Costruisci un elenco di dizionari rappresentanti i dati GeoJSON degli utenti
+        # Costruisco un elenco di dizionari rappresentanti i dati GeoJSON delle posizioni degli utenti
         user_data = []
         for row in result.fetchall():
-            username, posizione, activity = row
+            lon, lat = row[0], row[1]
             user_geojson = {
                 "type": "Feature",
-                "properties": {
-                    "username": username,
-                    "activity": activity
-                },
-                "posizione": posizione
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [lon, lat]
+                }
             }
             user_data.append(user_geojson)
 
-        # Restituisci i dati degli utenti come GeoJSON al frontend
+        # Restituisci i dati delle posizioni degli utenti come GeoJSON al frontend
         return jsonify(user_data), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/get_car_user_data', methods=['GET'])
+def get_car_user_data():
+    try:
+        # Eseguo una query per recuperare le informazioni sulle posizioni degli utenti dal database
+        query = text("""
+            SELECT ST_X(posizione) as lon, ST_Y(posizione) as lat
+            FROM "emergency-schema"."user-information"
+            WHERE activity = 'CAR';
+        """)
+
+        # Eseguo la query e ottieni i risultati
+        result = db.session.execute(query)
+
+        # Costruisco un elenco di dizionari rappresentanti i dati GeoJSON delle posizioni degli utenti
+        user_data = []
+        for row in result.fetchall():
+            lon, lat = row[0], row[1]
+            user_geojson = {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [lon, lat]
+                }
+            }
+            user_data.append(user_geojson)
+
+        # Restituisci i dati delle posizioni degli utenti come GeoJSON al frontend
+        return jsonify(user_data), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
+    
 
 
 @app.route('/testforfrontend', methods=['POST'])
