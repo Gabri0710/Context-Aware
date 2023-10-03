@@ -434,14 +434,23 @@ def get_geofence():
     try:
         # Eseguo una query per recuperare le informazioni sulle posizioni degli utenti dal database
         query = text("""
-            SELECT polygon
-            FROM "emergency-schema"."geofence-information"
+           SELECT g.id, g.polygon, COUNT(u.username) as n_users_inside
+            FROM "emergency-schema"."geofence-information" as g
+            LEFT JOIN "emergency-schema"."user-information" as u
+            ON ST_Contains(g.polygon, u.posizione)
+            GROUP BY g.id;
         """)
 
         # Eseguo la query e ottieni i risultati
         result = db.session.execute(query)
 
-        polygons = [row[0] for row in result.fetchall()]
+        query_result = result.fetchall()
+
+        id_polygons = [row[0] for row in query_result]
+        polygons = [row[1] for row in query_result]
+        n_users = [row[2] for row in query_result]
+
+
         polygons_frontend_format = []
 
         for p in polygons:
@@ -461,21 +470,9 @@ def get_geofence():
 
             polygons_frontend_format.append(tmp)
 
-        '''
-        query = text("""
-           SELECT g.id, COUNT(u.username) as n_users_inside
-            FROM "emergency-schema"."geofence-information" as g
-            LEFT JOIN "emergency-schema"."user-information" as u
-            ON ST_Contains(g.polygon, u.posizione)
-            GROUP BY g.id;
-        """)
-        
-
-        # Eseguo la query e ottieni i risultati
-        result = db.session.execute(query)       
-        '''
 
         points_geojson = []
+        i = 0
         for record in polygons_frontend_format:
             tmp = []
             for lon, lat in record:
@@ -485,16 +482,18 @@ def get_geofence():
                             "type": "Point",
                             "coordinates": [lon, lat]
                         }
-                        #"properties": {
-                        #"n_users": n  # Aggiungi il valore numerico n qui
-                        #}
                     }
-                tmp.append(point_geojson)
 
-            points_geojson.append(tmp)
+                tmp.append(point_geojson)
+                tmp_geojson_with_id = {
+                        "id": id_polygons[i],
+                        "n_users" : n_users[i],
+                        "points": tmp
+                    }
+                
+            i+=1
+            points_geojson.append(tmp_geojson_with_id)
         
-        print("POINTS_GEOJSON:")
-        print(points_geojson)
 
         # Restituisci i dati delle posizioni degli utenti come GeoJSON al frontend
         return jsonify(points_geojson), 200

@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
 
     loadGeofence();
+    setInterval(loadGeofence, 2000);
 
     //oggetto Feature dove memorizzo i punti scelti
     var selectedPoints = new ol.Collection();
@@ -56,9 +57,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
 
     map.on('click', function(event) {
-        var coordinate = event.coordinate;
-        var pointFeature = new ol.Feature(new ol.geom.Point(coordinate));
-        selectedPoints.push(pointFeature);
+        if (event.originalEvent.ctrlKey) {
+            selectedPoints.pop()
+        }
+        else{
+            var coordinate = event.coordinate;
+            var pointFeature = new ol.Feature(new ol.geom.Point(coordinate));
+            selectedPoints.push(pointFeature);
+        }
+        
     });
 
 
@@ -166,43 +173,48 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(data);
             map.removeLayer(geofenceLayer);
             var polygonsFeatures = [];
-    
-            data.forEach(function(path) {
-                var coordinates = path.map(function(point) {
-                    return ol.proj.fromLonLat(point.geometry.coordinates);
+            data.forEach(function(obj) {
+                var id = obj.id;
+                var n_users = obj.n_users; 
+                var points = obj.points;
+                var coordinates = points.map(function(record) {
+                    return ol.proj.fromLonLat(record.geometry.coordinates);
                 });
                 
-                //var nUsers = data.properties.n_users;
-                //console.log.data(nUsers);
 
                 var polygon = new ol.geom.Polygon([coordinates]);
                 var singlePolygonFeature = new ol.Feature(polygon);
+
+                //prendo il colore e lo normalizzo, poi definisco il fillColor. VALORE 1.5=NUMERO MASSIMO DI UTENTI, DA MODIFICARE IN SEGUITO
+                var colorNormalization = n_users/1.5;
+                var fillColor = 'rgba('+255*colorNormalization+','+255*(1-colorNormalization)+', 0, 0.2)'
+                
+                //setto il colore di riempimento di ogni singola feature
+                singlePolygonFeature.setStyle(new ol.style.Style({
+                    fill: new ol.style.Fill({
+                        color: fillColor
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: 'grey', // Colore del bordo del poligono
+                        width: 1 // Larghezza del bordo
+                    })
+                }));
+
+                //pusho ogni singola feature (poligono) personalizzata in un array di features
                 polygonsFeatures.push(singlePolygonFeature);
             });
 
-            
-
-            //var colorNormalization = nUsers/100
-            var colorNormalization = 0.2
-
+            //creo il layer con i vari poligoni personalizzati
             geofenceLayer = new ol.layer.Vector({
                 source: new ol.source.Vector({
                     features: polygonsFeatures
-                }),
-                style: new ol.style.Style({
-                    fill: new ol.style.Fill({
-                        
-                        color: 'rgba('+255*colorNormalization+','+255*(1-colorNormalization)+', 0, 0.2)' // Colore di riempimento del poligono (rosso con opacità al 20%)
-                    }),
-                    stroke: new ol.style.Stroke({
-                        color: 'red', // Colore del bordo del poligono
-                        width: 2 // Larghezza del bordo
-                    })
                 })
             });
-    
-           
+
+            updateUsersLocation();
             map.addLayer(geofenceLayer);
+            
+            
         })
         .catch(error => {
             // Gestisci gli errori
@@ -292,5 +304,5 @@ document.addEventListener('DOMContentLoaded', function() {
         loadGeofence()
     });
 
-
+    
 });
