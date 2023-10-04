@@ -54,18 +54,75 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     
     
-    
+    var openmenu = 0;
+    var myMenu = document.getElementById('clickMenu');
+    var myDeleteField = document.getElementById('deleteField');
+    var idToDelete = "";
 
     map.on('click', function(event) {
-        if (event.originalEvent.ctrlKey) {
-            selectedPoints.pop()
+        if (openmenu==1){
+            var coordinate = map.getCoordinateFromPixel(event.pixel);
+
+            var menuX = event.pixel[0] + 'px';
+            var menuY = event.pixel[1] + 'px';
+
+            myMenu.style.left = menuX;
+            myMenu.style.top = menuY;
+
+            // Mostra il menu del contesto
+            myMenu.style.display = 'block';
+
+            myDeleteField.onclick = function() {
+                deleteGeofence(idToDelete);
+                loadGeofence();
+                // Fai qualcosa quando viene cliccato su "MIOCAMPO"
+                console.log('Campo cliccato!');
+                // Nascondi il menu del contesto
+                myMenu.style.display = 'none';
+            };
         }
+
         else{
-            var coordinate = event.coordinate;
-            var pointFeature = new ol.Feature(new ol.geom.Point(coordinate));
-            selectedPoints.push(pointFeature);
+            myMenu.style.display = 'none';
+            if (event.originalEvent.ctrlKey) {
+                selectedPoints.pop()
+            }
+            else{
+                var coordinate = event.coordinate;
+                var pointFeature = new ol.Feature(new ol.geom.Point(coordinate));
+                selectedPoints.push(pointFeature);
+            }
         }
         
+        
+    });
+
+
+    map.on('pointermove', function(event) {
+        var feature = map.forEachFeatureAtPixel(event.pixel, function(feature) {
+            return feature;
+        });
+        
+        if (feature && feature.get('id')){
+            console.log(feature.get('id'))
+            openmenu = 1;
+            idToDelete = feature.get('id');
+        }
+        else{
+            idToDelete = "";
+            openmenu = 0;
+        }
+        
+        //if (feature && feature.get('id')) {
+            //var id = feature.get('id');
+            //var coordinates = polygonCoordinatesById[id];  // Ottieni le coordinate del poligono dall'ID
+            // Visualizza l'ID del poligono e le sue coordinate quando passi sopra con il mouse
+           // console.log('ID del poligono:', id);
+           // console.log('Coordinate del poligono:', coordinates);
+        //} else {
+            // Non c'è alcun poligono sotto il cursore del mouse
+            // Puoi fare qualcosa qui se vuoi gestire questo caso
+       // }
     });
 
 
@@ -200,6 +257,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                 }));
 
+                singlePolygonFeature.set('id', id);
+
                 //pusho ogni singola feature (poligono) personalizzata in un array di features
                 polygonsFeatures.push(singlePolygonFeature);
             });
@@ -222,9 +281,52 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    /*
+    function deleteGeofence(){
+        event.preventDefault(); // Previeni il comportamento di default del modulo (l'invio della pagina)
 
+        var formData = new FormData(this); // Crea un oggetto FormData dal modulo
 
+        // Esegui una richiesta POST al backend
+        fetch("http://localhost:5000/delete_geofence", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Gestisci la risposta dal backend
+            console.log(data);
+            loadGeofence();
+        })
+        .catch(error => {
+            // Gestisci gli errori
+            console.error("Errore:", error);
+        });
+    }
+    */
 
+    function deleteGeofence(s){
+        var queryString = 'id_allarme='+s;
+
+        // Esegui una richiesta POST al backend
+        fetch("http://localhost:5000/delete_geofence", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: queryString
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Gestisci la risposta dal backend
+            console.log(data);
+            loadGeofence();
+        })
+        .catch(error => {
+            // Gestisci gli errori
+            console.error("Errore:", error);
+        });
+    }
 
     document.getElementById("addGeofenceForm").addEventListener("submit", function(event) {
         event.preventDefault(); // impedisce alla pagina di ricaricarsi quando viene inviato il modulo
@@ -267,8 +369,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById("deleteGeofenceForm").addEventListener("submit", function(event) {
-        event.preventDefault(); // Previeni il comportamento di default del modulo (l'invio della pagina)
-
         var formData = new FormData(this); // Crea un oggetto FormData dal modulo
 
         // Esegui una richiesta POST al backend
