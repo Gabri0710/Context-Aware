@@ -126,23 +126,28 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function clusterUser(){
-        fetch("http://localhost:5000/createcsv", {
-                method: "GET"
+        formData = new FormData(this);
+        
+        fetch("http://localhost:5000/createcluster", {
+                method: "POST",
+                body : formData
                 })
                 .then(response => response.json())
                 .then(data => {
+
+                    const jsonData = JSON.parse(data);
                     map.removeLayer(carUserLayer);
                     map.removeLayer(walkingUserLayer);
                     console.log(data)
-                    const features = data.features;
                     
-                    var clusterFeatures = features.map(item => {
-                        const coordinates = item.geometry.coordinates;
-                        console.log(coordinates)
+                    
+                    var clusterFeatures = jsonData.map(item => {
+                        const coordinates = [item.longitudine, item.latitudine];
+                        
                         const point = new ol.Feature({
                             geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
                         });
-                        var cluster_id = item.properties.CLUSTER_ID;
+                        var cluster_id = item.CLUSTER_ID;
                         
                         var fillColor = 'rgba('+255*cluster_id+','+255*(1-cluster_id)+', 0, 0.8)'
                         point.setStyle(new ol.style.Style({
@@ -463,8 +468,68 @@ document.addEventListener('DOMContentLoaded', function() {
         loadGeofence()
     });
 
-    document.getElementById("clusterUserButton").addEventListener("click", function() {
-        clusterUser()
+    document.getElementById("ClusterForm").addEventListener("submit", function() {
+        event.preventDefault();
+        formData = new FormData(this);
+        
+        fetch("http://localhost:5000/createcluster", {
+                method: "POST",
+                body : formData
+                })
+                .then(response => response.json())
+                .then(data => {
+
+                    const jsonData = JSON.parse(data);
+                    map.removeLayer(carUserLayer);
+                    map.removeLayer(walkingUserLayer);
+                    console.log(data)
+                    
+                    var colorArray= new Array(100).fill("-1");
+
+                    var clusterFeatures = jsonData.map(item => {
+                        const coordinates = [item.longitudine, item.latitudine];
+                        
+                        const point = new ol.Feature({
+                            geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
+                        });
+                        var cluster_id = item.CLUSTER_ID;
+
+                        if(colorArray[cluster_id]==="-1"){
+                            fillColor = 'rgba('+Math.floor(Math.random() * 256)+','+Math.floor(Math.random() * 256)+','+Math.floor(Math.random() * 256)+', 0.8)'
+                            colorArray[cluster_id] = fillColor;
+                        }
+
+                        console.log(fillColor);
+                        
+                        //var fillColor = 'rgba('+255*cluster_id+','+255*(1-cluster_id)+', 0, 0.8)'
+                        point.setStyle(new ol.style.Style({
+                            image: new ol.style.Circle({
+                                radius: 6,
+                                fill: new ol.style.Fill({
+                                    color: colorArray[cluster_id]
+                                })
+                            })
+                        }));
+                        return point;
+                    });
+                
+                    // Creazione del livello vettoriale
+                    clusterSource = new ol.source.Vector({
+                        features: clusterFeatures
+                    });
+                    
+                
+                    clusterLayer = new ol.layer.Vector({
+                        source: clusterSource
+                    });
+                
+                    // Aggiungi il livello vettoriale alla mappa
+                    map.addLayer(clusterLayer);
+                })
+                .catch(error => {
+                    // Gestisci gli errori
+                    console.error("Errore:", error);
+                });
     });
 
     

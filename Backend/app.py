@@ -549,6 +549,58 @@ def createcsv():
     return jsonify(geojson_data), 200
 
 
+
+
+
+import pandas as pd
+from sklearn.cluster import KMeans
+
+@app.route('/createcluster', methods=['POST'])
+def createcluster():
+    query = text("""
+           SELECT ST_X(posizione) AS longitudine, ST_Y(posizione) AS latitudine 
+            FROM "emergency-schema"."user-information";
+        """)
+   
+    result = db.session.execute(query)
+
+    query_result = result.fetchall()
+
+    with open('coordinate.csv', 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        
+        # Scrivi l'intestazione del CSV
+        writer.writerow(['longitudine', 'latitudine'])
+        
+        # Scrivi i dati nel file CSV
+        for row in query_result:
+            writer.writerow(row)
+
+    # Carica il file CSV come DataFrame pandas
+    df = pd.read_csv('./coordinate.csv')
+
+    # Seleziona le colonne di latitudine e longitudine per il clustering
+    dati = df[['longitudine', 'latitudine']]
+
+    # Numero fisso di cluster
+    num_cluster = int(request.form.get('num_cluster'))
+
+    # Inizializza il modello K-Means con il numero fisso di cluster
+    kmeans = KMeans(n_clusters=num_cluster, n_init=10)
+
+    # Esegui il clustering K-Means
+    cluster_labels = kmeans.fit_predict(dati)
+
+    # Aggiungi le etichette di cluster al DataFrame originale
+    df['CLUSTER_ID'] = cluster_labels
+    
+
+    json_data = df.to_json(orient='records')
+
+
+    return jsonify(json_data), 200
+
+
 if __name__ == '__main__':
     #app.run(host='0.0.0.0', port=8080, debug= False)
     app.run(debug=True)
