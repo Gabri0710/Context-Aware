@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
 
     loadGeofence();
-    setInterval(loadGeofence, 2000);
+    //setInterval(loadGeofence, 2000);
 
     //oggetto Feature dove memorizzo i punti scelti
     var selectedPoints = new ol.Collection();
@@ -42,6 +42,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var carUserLayer;
     var geofenceLayer;
     var userVisualization = "CAR";
+
+    var clusterSource;
+    var clusterLayer;
     
 
     var map = new ol.Map({
@@ -122,6 +125,55 @@ document.addEventListener('DOMContentLoaded', function() {
        // }
     });
 
+    function clusterUser(){
+        fetch("http://localhost:5000/createcsv", {
+                method: "GET"
+                })
+                .then(response => response.json())
+                .then(data => {
+                    map.removeLayer(carUserLayer);
+                    map.removeLayer(walkingUserLayer);
+                    console.log(data)
+                    const features = data.features;
+                    
+                    var clusterFeatures = features.map(item => {
+                        const coordinates = item.geometry.coordinates;
+                        console.log(coordinates)
+                        const point = new ol.Feature({
+                            geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
+                        });
+                        var cluster_id = item.properties.CLUSTER_ID;
+                        
+                        var fillColor = 'rgba('+255*cluster_id+','+255*(1-cluster_id)+', 0, 0.8)'
+                        point.setStyle(new ol.style.Style({
+                            image: new ol.style.Circle({
+                                radius: 6,
+                                fill: new ol.style.Fill({
+                                    color: fillColor 
+                                })
+                            })
+                        }));
+                        return point;
+                    });
+                
+                    // Creazione del livello vettoriale
+                    clusterSource = new ol.source.Vector({
+                        features: clusterFeatures
+                    });
+                    
+                
+                    clusterLayer = new ol.layer.Vector({
+                        source: clusterSource
+                    });
+                
+                    // Aggiungi il livello vettoriale alla mappa
+                    map.addLayer(clusterLayer);
+                })
+                .catch(error => {
+                    // Gestisci gli errori
+                    console.error("Errore:", error);
+                });
+    }
 
     function updateUsersLocation(){
         if (userVisualization=="WALKING"){
@@ -409,6 +461,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById("viewGeofence").addEventListener("click", function() {
         loadGeofence()
+    });
+
+    document.getElementById("clusterUserButton").addEventListener("click", function() {
+        clusterUser()
     });
 
     

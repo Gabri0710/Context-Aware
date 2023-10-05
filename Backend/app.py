@@ -7,6 +7,8 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
 from flask_cors import CORS
+import csv
+import json
 
 app = Flask(__name__)
 
@@ -513,6 +515,38 @@ def testforfrontend():
     print(data_from_frontend)
     response_data = {'message': 'Messaggio ricevuvto: ' + data_from_frontend}
     return jsonify(response_data), 200  
+
+
+
+@app.route('/createcsv')
+def createcsv():
+    query = text("""
+           SELECT ST_X(posizione) AS longitudine, ST_Y(posizione) AS latitudine 
+            FROM "emergency-schema"."user-information";
+        """)
+   
+    result = db.session.execute(query)
+
+    query_result = result.fetchall()
+
+    with open('coordinate.csv', 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        
+        # Scrivi l'intestazione del CSV
+        writer.writerow(['longitudine', 'latitudine'])
+        
+        # Scrivi i dati nel file CSV
+        for row in query_result:
+            writer.writerow(row)
+    
+    geojson_file_path = './layer2.geojson'
+    
+    # Leggi il contenuto del file GeoJSON
+    with open(geojson_file_path, 'r') as file:
+        geojson_data = json.load(file)
+    
+    # Restituisci i dati GeoJSON come JSON
+    return jsonify(geojson_data), 200
 
 
 if __name__ == '__main__':
