@@ -10,8 +10,7 @@ from flask_cors import CORS
 import csv
 import json
 import numpy as np
-import scipy
-import math
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 
@@ -557,6 +556,7 @@ def createcsv():
 
 import pandas as pd
 from sklearn.cluster import KMeans
+from io import StringIO
 
 @app.route('/get_cluster', methods=['POST'])
 def get_cluster():
@@ -569,18 +569,22 @@ def get_cluster():
 
     query_result = result.fetchall()
 
-    with open('coordinate.csv', 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        
-        # Scrivi l'intestazione del CSV
-        writer.writerow(['longitudine', 'latitudine'])
-        
-        # Scrivi i dati nel file CSV
-        for row in query_result:
-            writer.writerow(row)
+    csv_buffer = StringIO()
+
+    
+    writer = csv.writer(csv_buffer)
+    
+    # Scrivi l'intestazione del CSV
+    writer.writerow(['longitudine', 'latitudine'])
+    
+    # Scrivi i dati nel file CSV
+    for row in query_result:
+        writer.writerow(row)
+
+    csv_buffer.seek(0)
 
     # Carica il file CSV come DataFrame pandas
-    df = pd.read_csv('./coordinate.csv')
+    df = pd.read_csv(csv_buffer)
 
     # Seleziona le colonne di latitudine e longitudine per il clustering
     dati = df[['longitudine', 'latitudine']]
@@ -604,8 +608,8 @@ def get_cluster():
     return jsonify(json_data), 200
 
 
-import matplotlib.pyplot as plt
-from autoelbow_rupakbob import autoelbow
+
+
 
 @app.route('/get_cluster_elbow')
 def get_cluster_elbow():
@@ -618,18 +622,23 @@ def get_cluster_elbow():
 
     query_result = result.fetchall()
 
-    with open('coordinate.csv', 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        
-        # Scrivi l'intestazione del CSV
-        writer.writerow(['longitudine', 'latitudine'])
-        
-        # Scrivi i dati nel file CSV
-        for row in query_result:
-            writer.writerow(row)
+    csv_buffer = StringIO()
+
+
+    #with open('coordinate.csv', 'w', newline='') as csvfile:
+    writer = csv.writer(csv_buffer)
+    
+    # Scrivi l'intestazione del CSV
+    writer.writerow(['longitudine', 'latitudine'])
+    
+    # Scrivi i dati nel file CSV
+    for row in query_result:
+        writer.writerow(row)
+
+    csv_buffer.seek(0)
 
     # Carica il file CSV come DataFrame pandas
-    df = pd.read_csv('./coordinate.csv')
+    df = pd.read_csv(csv_buffer)
 
     # Seleziona le colonne di latitudine e longitudine per il clustering
     dati = df[['longitudine', 'latitudine']]
@@ -676,9 +685,9 @@ def get_cluster_elbow():
         i+=1
     
 
-    print("Numero ottimale di cluster secondo il metodo del gomito:", optimal_k)
-    print(f'SSE: {sse}')
-    print(f'DIFFSSE: {differenze_sse}')
+    #print("Numero ottimale di cluster secondo il metodo elbow:", optimal_k)
+    #print(f'SSE: {sse}')
+    #print(f'DIFFSSE: {differenze_sse}')
 
 
     kmeans = KMeans(n_clusters=optimal_k, n_init=10)
