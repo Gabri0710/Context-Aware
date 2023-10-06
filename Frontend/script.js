@@ -276,7 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     function loadGeofence(){
-        fetch("http://localhost:5000/get_geofence", {
+        fetch("http://192.168.1.7:5000/get_geofence", {
             method: "GET"
         })
         .then(response => response.json())

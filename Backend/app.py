@@ -19,7 +19,8 @@ CORS(app)
 
 
 # Configuro la connessione con il database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost/geofance-emergency'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost/geofence-emergency'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@database-container/geofence-emergency'
 db = SQLAlchemy(app)
 
 i = "user0"
@@ -706,5 +707,5 @@ def get_cluster_elbow():
 
 
 if __name__ == '__main__':
-    #app.run(host='0.0.0.0', port=8080, debug= False)
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug= False)
+    #app.run(debug=True)
