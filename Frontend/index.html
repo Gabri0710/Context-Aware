@@ -27,6 +27,7 @@
     <form id="addGeofenceForm">
       <label for="inputData">Inserisci Testo dell'allarme da inserire e seleziona i punti su mappa:</label>
       <input type="text" id="inputData" name="testo_allarme" autocomplete="off">
+      <button type="submit">Inserisci allarme</button>
     </form>
 
     
@@ -34,12 +35,15 @@
 
     <button id="viewWalkingUserButton">Visualizza gli utenti a piedi</button>
     <button id="viewCarUserButton">Visualizza gli utenti in macchina</button>
-    <button id="viewGeofence">Visualizza zone di allarme</button>
+    <br>
     <br>
     <form id="ClusterForm">
+      <label for="inputData">Inserisci numero di Cluster: </label>
       <input type="text" id="inputData" name="num_cluster" autocomplete="off" pattern="[0-9]*">
       <button type="submit">Visualizza Cluster</button>
     </form>
+    <button id="viewElbowCluster">Visualizza Cluster Elbow</button>
+    <label id="elbowLabel"></label>
     
 
     <div class="container">
@@ -69,7 +73,7 @@
     
     <br>
 
-    <button type="submit" form="addGeofenceForm">Inserisci allarme</button>
+    
 
 
   </body>

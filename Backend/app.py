@@ -9,6 +9,9 @@ from firebase_admin import db
 from flask_cors import CORS
 import csv
 import json
+import numpy as np
+import scipy
+import math
 
 app = Flask(__name__)
 
@@ -555,8 +558,8 @@ def createcsv():
 import pandas as pd
 from sklearn.cluster import KMeans
 
-@app.route('/createcluster', methods=['POST'])
-def createcluster():
+@app.route('/get_cluster', methods=['POST'])
+def get_cluster():
     query = text("""
            SELECT ST_X(posizione) AS longitudine, ST_Y(posizione) AS latitudine 
             FROM "emergency-schema"."user-information";
@@ -587,6 +590,98 @@ def createcluster():
 
     # Inizializza il modello K-Means con il numero fisso di cluster
     kmeans = KMeans(n_clusters=num_cluster, n_init=10)
+
+    # Esegui il clustering K-Means
+    cluster_labels = kmeans.fit_predict(dati)
+
+    # Aggiungi le etichette di cluster al DataFrame originale
+    df['CLUSTER_ID'] = cluster_labels
+    
+
+    json_data = df.to_json(orient='records')
+
+
+    return jsonify(json_data), 200
+
+
+import matplotlib.pyplot as plt
+from autoelbow_rupakbob import autoelbow
+
+@app.route('/get_cluster_elbow')
+def get_cluster_elbow():
+    query = text("""
+           SELECT ST_X(posizione) AS longitudine, ST_Y(posizione) AS latitudine 
+            FROM "emergency-schema"."user-information";
+        """)
+   
+    result = db.session.execute(query)
+
+    query_result = result.fetchall()
+
+    with open('coordinate.csv', 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        
+        # Scrivi l'intestazione del CSV
+        writer.writerow(['longitudine', 'latitudine'])
+        
+        # Scrivi i dati nel file CSV
+        for row in query_result:
+            writer.writerow(row)
+
+    # Carica il file CSV come DataFrame pandas
+    df = pd.read_csv('./coordinate.csv')
+
+    # Seleziona le colonne di latitudine e longitudine per il clustering
+    dati = df[['longitudine', 'latitudine']]
+
+    # Lista per conservare i valori di SSE (Somma dei quadrati degli errori)
+    sse = []
+
+    # Range di valori di K che vogliamo esplorare
+    k_range = range(1, 5)
+
+    # Esegui K-Means per ciascun valore di K e calcola SSE
+    for k in k_range:
+        kmeans = KMeans(n_clusters=k, n_init=10, random_state=0)
+        kmeans.fit(dati)
+        sse.append(kmeans.inertia_)
+
+    '''
+    # Traccia il grafico della varianza interna del cluster in funzione di K
+    plt.figure(figsize=(8, 6))
+    plt.plot(k_range, sse, marker='o')
+    plt.xlabel('Numero di Cluster (K)')
+    plt.ylabel('SSE (Somma dei quadrati degli errori)')
+    plt.title('Metodo del Gomito per Ottimizzare il Numero di Cluster')
+    plt.grid(True)
+    plt.show()
+    '''
+
+    valore_max = max(sse)
+    valore_min = min(sse)
+
+    threshold = (valore_max - valore_min) * 0.25 + valore_min
+    
+    
+    differenze_sse = []
+    for i in range(len(sse) - 1):
+        differenza = sse[i] - sse[i + 1]
+        differenze_sse.append(differenza)
+    
+    i=0
+    for item in differenze_sse:
+        if item<threshold:
+            optimal_k=i+1
+            break
+        i+=1
+    
+
+    print("Numero ottimale di cluster secondo il metodo del gomito:", optimal_k)
+    print(f'SSE: {sse}')
+    print(f'DIFFSSE: {differenze_sse}')
+
+
+    kmeans = KMeans(n_clusters=optimal_k, n_init=10)
 
     # Esegui il clustering K-Means
     cluster_labels = kmeans.fit_predict(dati)

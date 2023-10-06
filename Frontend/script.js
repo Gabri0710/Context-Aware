@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
 
     loadGeofence();
-    //setInterval(loadGeofence, 2000);
+    setInterval(loadGeofence, 3000);
 
     //oggetto Feature dove memorizzo i punti scelti
     var selectedPoints = new ol.Collection();
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var clusterSource;
     var clusterLayer;
-    
+    var clusterMode = 0;
 
     var map = new ol.Map({
         target: 'map',
@@ -325,7 +325,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
             });
 
-            updateUsersLocation();
+            if(clusterMode==0)
+                updateUsersLocation();
             map.addLayer(geofenceLayer);
             
             
@@ -455,24 +456,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById("viewWalkingUserButton").addEventListener("click", function() {
         userVisualization = "WALKING";
+        clusterMode=0;
         updateUsersLocation();
     });
 
 
     document.getElementById("viewCarUserButton").addEventListener("click", function() {
         userVisualization = "CAR";
+        clusterMode=0;
         updateUsersLocation();
     });
 
-    document.getElementById("viewGeofence").addEventListener("click", function() {
-        loadGeofence()
-    });
 
     document.getElementById("ClusterForm").addEventListener("submit", function() {
         event.preventDefault();
         formData = new FormData(this);
         
-        fetch("http://localhost:5000/createcluster", {
+        fetch("http://localhost:5000/get_cluster", {
                 method: "POST",
                 body : formData
                 })
@@ -525,6 +525,77 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                     // Aggiungi il livello vettoriale alla mappa
                     map.addLayer(clusterLayer);
+                    clusterMode=1;
+                })
+                .catch(error => {
+                    // Gestisci gli errori
+                    console.error("Errore:", error);
+                });
+    });
+
+
+    
+    document.getElementById("viewElbowCluster").addEventListener("click", function() {
+        fetch("http://localhost:5000/get_cluster_elbow", {
+                method: "GET"
+                })
+                .then(response => response.json())
+                .then(data => {
+
+                    const jsonData = JSON.parse(data);
+                    map.removeLayer(carUserLayer);
+                    map.removeLayer(walkingUserLayer);
+                    map.removeLayer(clusterLayer);
+                    console.log(data)
+                    
+                    var colorArray= new Array(100).fill("-1");
+                    var clusterFeatures = jsonData.map(item => {
+                        const coordinates = [item.longitudine, item.latitudine];
+                        
+                        const point = new ol.Feature({
+                            geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
+                        });
+                        var cluster_id = item.CLUSTER_ID;
+
+                        if(colorArray[cluster_id]==="-1"){
+                            fillColor = 'rgba('+Math.floor(Math.random() * 256)+','+Math.floor(Math.random() * 256)+','+Math.floor(Math.random() * 256)+', 0.8)'
+                            colorArray[cluster_id] = fillColor;
+                        }
+
+                        console.log(fillColor);
+                        
+                        //var fillColor = 'rgba('+255*cluster_id+','+255*(1-cluster_id)+', 0, 0.8)'
+                        point.setStyle(new ol.style.Style({
+                            image: new ol.style.Circle({
+                                radius: 6,
+                                fill: new ol.style.Fill({
+                                    color: colorArray[cluster_id]
+                                })
+                            })
+                        }));
+                        return point;
+                    });
+
+                    var n_cluster = 0;
+                    while (colorArray[n_cluster]!="-1" && n_cluster<100){
+                        n_cluster+=1;
+                    }
+
+                    
+                    document.getElementById("elbowLabel").textContent = "Numero ottimale di cluster rilevati con metodo elbow: " + n_cluster;
+                    // Creazione del livello vettoriale
+                    clusterSource = new ol.source.Vector({
+                        features: clusterFeatures
+                    });
+                    
+                
+                    clusterLayer = new ol.layer.Vector({
+                        source: clusterSource
+                    });
+                
+                    // Aggiungi il livello vettoriale alla mappa
+                    map.addLayer(clusterLayer);
+                    clusterMode=1;
                 })
                 .catch(error => {
                     // Gestisci gli errori
