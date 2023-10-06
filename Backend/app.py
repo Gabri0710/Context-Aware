@@ -27,7 +27,7 @@ user_used = None
 
 
 # Inizializzo l'app Firebase nel tuo backend
-cred = credentials.Certificate("C:\\Users\\racit\\Desktop\\chiave firebase\\geo-fencing-based-emergency-firebase-adminsdk-1yviz-e39c6f8807.json")
+cred = credentials.Certificate("./key.json")
 firebase_admin.initialize_app(cred, {
     'databaseURL': 'https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/'
 })
