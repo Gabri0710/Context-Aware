@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "geo-fencing-based-emergency",
+  "private_key_id": "e39c6f880775b548ccaf4bc74c7020cdf0adff71",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDgLX5/bToVv/KJ\nl9V2/8j6Mu0l5QE1mFILB/SSk7jXCDnEs6vhA4w8GdcH9untWgHyhyQPHbPZ4KkX\nXwZF5+4F3WY/NZpGxPtNceh4PamaNOI6GG7eltdR8lPXmpU2skt9LR0N2MGBoxAF\nvw0/UqN+5A75w5zbdeEzf6ud8nzStMszn6G4o3rwFSiGVr8ANIgkKe+eposuduFp\nblXm+IqQZpCEHA3CC+riko2Wc8CTTsdebv3FDLaHyBxWaPO4ced9X6bb+YsUw1TI\nAlkW+9TsuLIJliLcabC4hd5GUGQsOxksaLoHaRjYPNQss3aa9LhRsIWEVOV3vtCb\nsGp9koMtAgMBAAECggEALPdDI9kraPhu9EVl1nA5BmKXqd207+SlNDw8xPfngA5Q\n1BE7/S7ifp2qQZk309mVgWm1BGkvTZkgIaV4UyZR2pBNtYkRcHeLdr3N5OxtbBaG\neCO1fWVhPDkwsxL5MhbySGH3rXLYYaHtEVIAnL59N/MTw+qGOIj9CoDl0hE1E2g7\nK5mFD2DIbkcGD6W/cH0yam0hzPcj/F3AKox3NmkmnL4MxgyeDjxfi92KX2br+Aaz\nn9xXjpNDAP2LDs/F9J0OYmu7RZEIR1dNQnvkbT9/c1t4jKCl1NdP/rkBCVB/y5tF\nzmw68C91qoobaBIdWr4Cm4qfUuJfaYnYDpExlAWSqwKBgQDyciSVedQ6qZa5ghM6\nJiB0ob+GF6qoHMM9/c3OLlIXEplzbrmx6689JDccctZWcF2QHLn2opNUdDeDYgHi\nyTLaFE0ZhviRY19UJsDaQKadcQMLN0lEt/wgAnLeZZzXfpES6DWIzWFQyM9pxl9d\np6a4YFp+39+Co11la0ePOGTBEwKBgQDsteZCvw0a9hrL23V/h9/jBpFRSiC0RayU\nCiLMd9edGbWtCTSDm1iuUrsEdDQohMmrleA7ugvoExE7/Kw5XZF3xSAcub+X4DIW\ndv5Zgw1kN/g3fpYBI04vgR0fAtHZdrJNgm31dijQF+wx1UEDmX3cZCv5Re0eSBoS\nlSLBe2RyvwKBgQDKjykXpdD2Liia1x1/UMl/CIC+5NkVWeqZyYqAf9zgIA8LDXCi\nQTqJB8/vudZwI7NYK1gHwu76+ZpD78eJlfYhlCKSeF0HA5Jq+XHZJ3jNQ9V6MnfJ\nrTo9+C3Gt/jhZoKI3G+V25o553y7cBzPX7oAg6g4Jo1UVW87w/TmqQQs9wKBgQDY\ne+9vwczZiJSvNjF6hiijN6F1Z8cLN+GCrtZui3f87MNz0kRdzJhJLc5uX1xIZlEO\nhQ7DcP5sq+uKIibcfA+LKxSYUOTBoMAOPZuW/70il/GBx1qnBcP+vCWG9Aw5x02A\nh7XK1Nq0nfxdAvznrtwl0NNKscIPfL+jmRNlQlV2fwKBgDV05J6/F3OAeeaT5TSu\npro5LqK3vAt9b5Adj2OqYbbBZrG/nrnFOfcejiLI8Glt1zWMwalg4ssQuj7r5Gff\ncIF8KrCRrj0QLsZpd/PowfbAMSPhYLEfyXDOSsDwmEK5xFfWbYjJ6R8rp0U/+vGb\nhQBy1K+p6bXbBJ4WYT+ZmJvp\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-1yviz@geo-fencing-based-emergency.iam.gserviceaccount.com",
+  "client_id": "115835165902985298647",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-1yviz%40geo-fencing-based-emergency.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
