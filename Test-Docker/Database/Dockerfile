@@ -10,4 +10,4 @@ ENV POSTGRES_USER postgres
 ENV POSTGRES_PASSWORD password
 
 # Esponi la porta di PostgreSQL (di default è 5432)
-EXPOSE 5432
+#EXPOSE 5432

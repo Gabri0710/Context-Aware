@@ -19,7 +19,7 @@ CORS(app)
 
 
 # Configuro la connessione con il database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost/geofence-emergency'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost:5431/geofence-emergency'
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@database-container/geofence-emergency'
 db = SQLAlchemy(app)
 

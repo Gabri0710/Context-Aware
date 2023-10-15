@@ -19,8 +19,9 @@ CORS(app)
 
 
 # Configuro la connessione con il database
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost/geofence-emergency'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@database-container/geofence-emergency'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@database-service:5433/geofence-emergency'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@database-container/geofence-emergency'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@database-deployment/geofence-emergency'
 db = SQLAlchemy(app)
 
 i = "user0"
@@ -39,7 +40,23 @@ notifiche_ref = firebase_admin.db.reference('/notifiche')
 
 @app.route('/')
 def hello_world():
-    return '<h1>GEOFECE EMERGENCY</h1>'
+    try:
+        query = text("""
+           SELECT g.id, g.polygon, COUNT(u.username) as n_users_inside
+            FROM "emergency-schema"."geofence-information" as g
+            LEFT JOIN "emergency-schema"."user-information" as u
+            ON ST_Contains(g.polygon, u.posizione)
+            GROUP BY g.id;
+        """)
+
+        # Eseguo la query e ottieni i risultati
+        result = db.session.execute(query)
+
+        query_result = result.fetchall()
+        return "<h1>ok</h1>"
+    except Exception as e:
+        return "<h1>error2</h1>"
+
 
 #DA RIFARE
 @app.route('/register', methods=['POST'])
@@ -707,5 +724,5 @@ def get_cluster_elbow():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug= False)
+    app.run(host='0.0.0.0', port=5001, debug= False)
     #app.run(debug=True)

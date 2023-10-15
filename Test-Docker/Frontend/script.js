@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function clusterUser(){
         formData = new FormData(this);
         
-        fetch("http://localhost:5000/createcluster", {
+        fetch("http://localhost:5001/createcluster", {
                 method: "POST",
                 body : formData
                 })
@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateUsersLocation(){
         if (userVisualization=="WALKING"){
-                fetch("http://localhost:5000/get_walking_user_data", {
+                fetch("http://localhost:5001/get_walking_user_data", {
                 method: "GET"
                 })
                 .then(response => response.json())
@@ -226,7 +226,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         }
         else{
-                fetch("http://localhost:5000/get_car_user_data", {
+                fetch("http://localhost:5001/get_car_user_data", {
                 method: "GET"
                 })
                 .then(response => response.json())
@@ -276,7 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     function loadGeofence(){
-        fetch("http://localhost:5000/get_geofence", {
+        fetch("http://localhost:5001/get_geofence", {
             method: "GET"
         })
         .then(response => response.json())
@@ -344,7 +344,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var formData = new FormData(this); // Crea un oggetto FormData dal modulo
 
         // Esegui una richiesta POST al backend
-        fetch("http://localhost:5000/delete_geofence", {
+        fetch("http://localhost:5001/delete_geofence", {
             method: "POST",
             body: formData
         })
@@ -366,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var queryString = 'id_allarme='+s;
 
         // Esegui una richiesta POST al backend
-        fetch("http://localhost:5000/delete_geofence", {
+        fetch("http://localhost:5001/delete_geofence", {
             method: "POST",
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded"
@@ -405,7 +405,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // Eseguo una richiesta POST al backend
-        fetch("http://localhost:5000/add_geofence", {
+        fetch("http://localhost:5001/add_geofence", {
             method: "POST",
             body: formData
         })
@@ -430,7 +430,7 @@ document.addEventListener('DOMContentLoaded', function() {
          formData = new FormData(this); // Crea un oggetto FormData dal modulo
 
         // Esegui una richiesta POST al backend
-        fetch("http://localhost:5000/delete_geofence", {
+        fetch("http://localhost:5001/delete_geofence", {
             method: "POST",
             body: formData
         })
@@ -472,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function() {
         event.preventDefault();
         formData = new FormData(this);
         
-        fetch("http://localhost:5000/get_cluster", {
+        fetch("http://localhost:5001/get_cluster", {
                 method: "POST",
                 body : formData
                 })
@@ -536,7 +536,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
     document.getElementById("viewElbowCluster").addEventListener("click", function() {
-        fetch("http://localhost:5000/get_cluster_elbow", {
+        fetch("http://localhost:5001/get_cluster_elbow", {
                 method: "GET"
                 })
                 .then(response => response.json())
