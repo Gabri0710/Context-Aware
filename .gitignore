@@ -1,3 +1,4 @@
 #ignoro la chiave firebase
 Test-Locali/Backend/key.json
-Test-Docker/Backend/key.json
+Test-Docker-STABILE/Backend/key.json
+Test-Docker-2PUNTIEXTRA/Backend/key.json

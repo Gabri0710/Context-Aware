@@ -1,16 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend-deployment
+  name: backend-pod-2
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: backend
+      version: pod-2
   template:
     metadata:
       labels:
         app: backend
+        version: pod-2
     spec:
       containers:
       - name: backend-container
