@@ -19,9 +19,10 @@ CORS(app)
 
 
 # Configuro la connessione con il database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@database-service:5433/geofence-emergency'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@database-service:5433/geofence-emergency'
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@database-container/geofence-emergency'
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@database-deployment/geofence-emergency'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost:5431/geofence-emergency'
 db = SQLAlchemy(app)
 
 i = "user0"
@@ -723,6 +724,82 @@ def get_cluster_elbow():
     return jsonify(json_data), 200
 
 
+
+@app.route('/add_server', methods=['POST'])
+def add_server():
+    try:
+        id_server = request.form.getlist('id_server')
+        id_server = json.loads(id_server[0])
+        coordinate = request.form.getlist('coordinates')
+        coordinate_points = []
+        
+        lon_string, lat_string = coordinate[0].split(',')
+        latitude = float(lat_string)
+        longitude = float(lon_string)
+
+
+        coordinates = f'POINT({longitude} {latitude})'
+        
+        # Creo la query SQL per inserire o aggiornare il record
+        query = text("""
+            INSERT INTO "emergency-schema"."edge-information" (id, posizione)
+            VALUES (:id_server, :posizione)
+            ON CONFLICT (id) DO UPDATE
+            SET posizione = EXCLUDED.posizione
+        """)
+
+        # Parametri per la query
+        parametri = {
+            'id_server': id_server,
+            'posizione': coordinates
+        }
+      
+        try:
+            db.session.execute(query, parametri)  # Eseguo la query con i parametri
+            db.session.commit()  # Eseguo il commit per confermare le modifiche nel database
+            print("SERVER inserito o aggiornato con successo")
+            return jsonify({'ok': 'record inserito'}), 200
+        except Exception as e:
+            db.session.rollback()  # Annulla la transazione in caso di errore
+            print(f"Errore durante l'inserimento o l'aggiornamento DEL SERVER: {str(e)}")
+            return jsonify({'errore': e}), 500
+    except:
+        return jsonify({'errore': 'fuori'}), 500
+
+
+@app.route('/get_server')
+def get_server():
+    try:
+        # Eseguo una query per recuperare le informazioni sulle posizioni degli utenti dal database
+        query = text("""
+            SELECT ST_X(posizione) as lon, ST_Y(posizione) as lat
+            FROM "emergency-schema"."edge-information";
+        """)
+
+        # Eseguo la query e ottieni i risultati
+        result = db.session.execute(query)
+
+        # Costruisco un elenco di dizionari rappresentanti i dati GeoJSON delle posizioni degli utenti
+        server_data = []
+        for row in result.fetchall():
+            lon, lat = row[0], row[1]
+            server_geojson = {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [lon, lat]
+                }
+            }
+            server_data.append(server_geojson)
+
+        # Restituisci i dati delle posizioni degli utenti come GeoJSON al frontend
+        return jsonify(server_data), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug= False)
+    app.run(host='0.0.0.0', port=5001, debug= True)
     #app.run(debug=True)

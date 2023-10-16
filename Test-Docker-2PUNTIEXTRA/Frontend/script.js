@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
 
     loadGeofence();
+    loadServer();
     setInterval(loadGeofence, 3000);
 
     //oggetto Feature dove memorizzo i punti scelti
@@ -271,6 +272,54 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
 
+
+    }
+
+
+    var serverLayer;
+
+    function loadServer(){
+            fetch("http://localhost:5001/get_server", {
+            method: "GET"
+            })
+            .then(response => response.json())
+            .then(data => {
+                //console.log(data)
+                map.removeLayer(serverLayer);
+                var serverFeatures = data.map(item => {
+                    const coordinates = item.geometry.coordinates;
+                    const point = new ol.Feature({
+                        geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
+                    });
+                    return point;
+                });
+            
+                // Creazione del livello vettoriale
+                serverSource = new ol.source.Vector({
+                    features: serverFeatures,
+                });
+                
+            
+                serverLayer = new ol.layer.Vector({
+                    source: serverSource,
+                    style: new ol.style.Style({
+                        image: new ol.style.Circle({
+                            radius: 7,
+                            fill: new ol.style.Fill({
+                                color: 'black', // Colore del punto
+                            }),
+                        }),
+                    }),
+                });
+            
+                // Aggiungi il livello vettoriale alla mappa
+                map.addLayer(serverLayer);
+            })
+            .catch(error => {
+                // Gestisci gli errori
+                console.error("Errore:", error);
+            });
+        
 
     }
 
@@ -603,5 +652,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
     });
 
+
+    document.getElementById("loadServer").addEventListener("click", function() {
+        loadServer();
+    });
     
 });
