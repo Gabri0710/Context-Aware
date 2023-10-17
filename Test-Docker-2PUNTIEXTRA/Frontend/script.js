@@ -347,8 +347,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 var polygon = new ol.geom.Polygon([coordinates]);
                 var singlePolygonFeature = new ol.Feature(polygon);
 
-                //prendo il colore e lo normalizzo, poi definisco il fillColor. VALORE 1.5=NUMERO MASSIMO DI UTENTI, DA MODIFICARE IN SEGUITO
-                var colorNormalization = n_users/1.5;
+                //prendo il colore e lo normalizzo, poi definisco il fillColor. VALORE 6=NUMERO MASSIMO DI UTENTI, DA MODIFICARE IN SEGUITO
+                var colorNormalization = n_users/6;
                 var fillColor = 'rgba('+255*colorNormalization+','+255*(1-colorNormalization)+', 0, 0.2)'
                 
                 //setto il colore di riempimento di ogni singola feature

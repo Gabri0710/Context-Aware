@@ -566,7 +566,7 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(getApplicationContext(), "START", Toast.LENGTH_SHORT).show();
 
         //inizializzo di default l'attività iniziale come IN_VEHICLE
-        recognizedActivity = IN_VEHICLE;
+        recognizedActivity = WALKING;
 
         // Inizializzo l'intentFilter per i risultati dell'Activity Recognition
         IntentFilter intentFilter = new IntentFilter("ACTION_ACTIVITY_RECOGNITION_RESULT");
