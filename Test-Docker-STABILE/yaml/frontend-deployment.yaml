@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
       - name: frontend-container
-        image: gabri071098/frontendimage:latest11 # Inserisci il nome dell'immagine del tuo frontend
+        image: gabri071098/frontendimage:stablelatest # Inserisci il nome dell'immagine del tuo frontend
         ports:
         - containerPort: 80 # Porta su cui il frontend è accessibile all'interno del container

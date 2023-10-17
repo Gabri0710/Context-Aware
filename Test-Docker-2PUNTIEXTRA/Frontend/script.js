@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadGeofence();
     loadServer();
     setInterval(loadGeofence, 3000);
+    setInterval(loadServer, 3000);
 
     //oggetto Feature dove memorizzo i punti scelti
     var selectedPoints = new ol.Collection();
@@ -284,7 +285,8 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
-                //console.log(data)
+                console.log("ok");
+                console.log(data);
                 map.removeLayer(serverLayer);
                 var serverFeatures = data.map(item => {
                     const coordinates = item.geometry.coordinates;

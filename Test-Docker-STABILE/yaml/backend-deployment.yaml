@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: backend-container
-        image: gabri071098/backendimage:latest20
+        image: gabri071098/backendimage:stablelatest
         ports:
         - containerPort: 5001
 
