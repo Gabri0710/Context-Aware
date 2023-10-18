@@ -40,10 +40,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var walkingUserSource;
     var carUserSource;
+    var allUserSource;
     var walkingUserLayer;
     var carUserLayer;
+    var allUserLayer;
     var geofenceLayer;
-    var userVisualization = "CAR";
+    var userVisualization = "ALL";
 
     var clusterSource;
     var clusterLayer;
@@ -138,6 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(data => {
 
                     const jsonData = JSON.parse(data);
+                    map.removeLayer(allUserLayer);
                     map.removeLayer(carUserLayer);
                     map.removeLayer(walkingUserLayer);
                     console.log(data)
@@ -189,6 +192,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .then(response => response.json())
                 .then(data => {
+                    console.log("WALKING");
+                    map.removeLayer(allUserLayer);
                     map.removeLayer(carUserLayer);
                     map.removeLayer(walkingUserLayer);
                     //console.log(data)
@@ -227,12 +232,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error("Errore:", error);
                 });
         }
-        else{
+        else if(userVisualization=="CAR"){
                 fetch("http://localhost:5001/get_car_user_data", {
                 method: "GET"
                 })
                 .then(response => response.json())
                 .then(data => {
+                    console.log("CAR");
+                    map.removeLayer(allUserLayer);
                     map.removeLayer(walkingUserLayer);
                     map.removeLayer(carUserLayer);
                     console.log(data)
@@ -265,6 +272,52 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Aggiungi il livello vettoriale alla mappa
                     map.addLayer(carUserLayer);
                     userVisualization = "CAR";
+                })
+                .catch(error => {
+                    // Gestisci gli errori
+                    console.error("Errore:", error);
+                });
+        }
+        else{
+            fetch("http://localhost:5001/get_all_user_data", {
+                method: "GET"
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("ALL");
+                    map.removeLayer(walkingUserLayer);
+                    map.removeLayer(carUserLayer);
+                    map.removeLayer(allUserLayer);
+                    //console.log(data)
+                    var allUserFeatures = data.map(item => {
+                        const coordinates = item.geometry.coordinates;
+                        const point = new ol.Feature({
+                            geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
+                        });
+                        return point;
+                    });
+                    
+                
+                    // Creazione del livello vettoriale
+                    allUserSource = new ol.source.Vector({
+                        features: allUserFeatures
+                    });
+                
+                    allUserLayer = new ol.layer.Vector({
+                        source: allUserSource,
+                        style: new ol.style.Style({
+                            image: new ol.style.Circle({
+                                radius: 6,
+                                fill: new ol.style.Fill({
+                                    color: 'blue', // Colore del punto
+                                }),
+                            }),
+                        }),
+                    });
+                
+                    // Aggiungi il livello vettoriale alla mappa
+                    map.addLayer(allUserLayer);
+                    userVisualization = "ALL";
                 })
                 .catch(error => {
                     // Gestisci gli errori
@@ -519,6 +572,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 
+    document.getElementById("viewAllUserButton").addEventListener("click", function() {
+        userVisualization = "ALL";
+        clusterMode=0;
+        updateUsersLocation();
+    });
+
+
     document.getElementById("ClusterForm").addEventListener("submit", function() {
         event.preventDefault();
         formData = new FormData(this);
@@ -531,6 +591,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(data => {
 
                     const jsonData = JSON.parse(data);
+                    map.removeLayer(allUserLayer);
                     map.removeLayer(carUserLayer);
                     map.removeLayer(walkingUserLayer);
                     console.log(data)
@@ -594,6 +655,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(data => {
 
                     const jsonData = JSON.parse(data);
+                    map.removeLayer(allUserLayer);
                     map.removeLayer(carUserLayer);
                     map.removeLayer(walkingUserLayer);
                     map.removeLayer(clusterLayer);
@@ -654,9 +716,5 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
     });
 
-
-    document.getElementById("loadServer").addEventListener("click", function() {
-        loadServer();
-    });
     
 });

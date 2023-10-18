@@ -58,15 +58,15 @@ public class AlertReceiver extends BroadcastReceiver {
 
                 switch (priority) {
                     case 1:
-                        notificationText = "SEI DENTRO IL GEOFENCE: " + alertText + " con coordinate: " + coordinate;
+                        notificationText = "ALLARME: " + alertText + " con coordinate: " + coordinate;
                         priorityLevel = NotificationCompat.PRIORITY_MAX;
                         break;
                     case 2:
-                        notificationText = "SEI IN UN'AREA A DISTANZA DI 1 KM DAL GEOFENCE: " + alertText + " con coordinate: " + coordinate;
+                        notificationText = "ALLARME: " + alertText + " con coordinate: " + coordinate;
                         priorityLevel = NotificationCompat.PRIORITY_HIGH;
                         break;
                     case 3:
-                        notificationText = "SEI IN UN'AREA A DISTANZA TRA 1 e 2 KM DAL GEOFENCE: " + alertText + " con coordinate: " + coordinate;
+                        notificationText = "ALLARME: " + alertText + " con coordinate: " + coordinate;
                         // priority level = DEFAULT
                         break;
                 }

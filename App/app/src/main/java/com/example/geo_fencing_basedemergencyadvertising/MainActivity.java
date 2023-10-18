@@ -252,7 +252,10 @@ public class MainActivity extends AppCompatActivity {
                 //TESTO, LATITUDINE E LONGITUDINE. DA GESTIRE QUI SE NO VENGONO VISTI COME null
 
                 String identificativo = dataSnapshot.getKey();
-                String testo = dataSnapshot.child("testo").getValue(String.class);
+                String titolo = dataSnapshot.child("titolo").getValue(String.class);
+                String allarme1 = dataSnapshot.child("allarme1").getValue(String.class);
+                String allarme2 = dataSnapshot.child("allarme2").getValue(String.class);
+                String allarme3 = dataSnapshot.child("allarme3").getValue(String.class);
 //                alertText = dataSnapshot.child("testo").getValue(String.class);
 
                 //classe di utilità fornita da Firebase SDK per Java per aiutare nella deserializzazione dei dati da Firebase Realtime Database.
@@ -263,7 +266,7 @@ public class MainActivity extends AppCompatActivity {
                 //array di coordinate. Per ogni punto, in posizione i latitudine, i+1 longitudine
                 ArrayList<ArrayList<Double>> coordinateList = dataSnapshot.child("coordinate").getValue(t);
 
-                drawGeofence(identificativo, testo, coordinateList);
+                drawGeofence(identificativo, titolo, allarme1, allarme2, allarme3, coordinateList);
                 Log.d("ORDINE","5");
             }
 
@@ -300,12 +303,16 @@ public class MainActivity extends AppCompatActivity {
                     for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
                         // Ottieni le informazioni da ciascun figlio
                         String identificativo = childSnapshot.getKey();
-                        String testo = childSnapshot.child("testo").getValue(String.class);
+                        String titolo = childSnapshot.child("titolo").getValue(String.class);
+                        String allarme1 = dataSnapshot.child("allarme1").getValue(String.class);
+                        String allarme2 = dataSnapshot.child("allarme2").getValue(String.class);
+                        String allarme3 = dataSnapshot.child("allarme3").getValue(String.class);
+
 //                        alertText = childSnapshot.child("testo").getValue(String.class);
 //
 
                         Log.d("ordine","2");
-                        Log.d("TESTO", testo);
+                        Log.d("TESTO", titolo);
                         //classe di utilità fornita da Firebase SDK per Java per aiutare nella deserializzazione dei dati da Firebase Realtime Database.
                         //È utilizzato quando si desidera deserializzare dati generici, come liste ecc, perché firebase non riconosce automaticamente il tipo di dati
                         //quindi, lo specifichiamo e lo passiamo successivamente a getValue(). In particolare, specifichiamo che stiamo ricevendo una lista di liste di double
@@ -315,7 +322,7 @@ public class MainActivity extends AppCompatActivity {
                         ArrayList<ArrayList<Double>> coordinateList = childSnapshot.child("coordinate").getValue(t);
 
                         Log.d("TROVATO GEOFENCE", "identificativo: " + identificativo + " " + coordinateList);
-                        drawGeofence(identificativo, testo, coordinateList);
+                        drawGeofence(identificativo, titolo, allarme1, allarme2, allarme3, coordinateList);
                         firstOperationCompleted.complete(null);
                     }
                 } else {
@@ -346,7 +353,10 @@ public class MainActivity extends AppCompatActivity {
                         alertIntent.putExtra("recognizedActivity", recognizedActivity);
                         //Log.d("IDGEOFENCE", idGeofence);
                         CustomGeofence cg = geofence.get(idGeofence);
-                        String alertText = cg.getDescription();
+                        String titolo = cg.getTitolo();
+                        String allarme1 = cg.getAllarme1();
+                        String allarme2 = cg.getAllarme2();
+                        String allarme3 = cg.getAllarme3();
 
                         Polygon p = cg.getPolygon();
                         List<GeoPoint> geoPoints = p.getPoints();
@@ -372,20 +382,20 @@ public class MainActivity extends AppCompatActivity {
 
                         switch (state) {
                             case "DENTRO IL GEOFENCE":
-                                alertIntent.putExtra("alertText", alertText);
+                                alertIntent.putExtra("alertText", allarme1);
                                 alertIntent.putExtra("coordinate", coordinate);
                                 alertIntent.putExtra("priority", 1);
                                 sendBroadcast(alertIntent);
                                 break;
                             case "A 1 KM DAL GEOFENCE":
-                                alertIntent.putExtra("alertText", alertText);
+                                alertIntent.putExtra("alertText", allarme2);
                                 alertIntent.putExtra("coordinate", coordinate);
                                 alertIntent.putExtra("priority", 2);
                                 sendBroadcast(alertIntent);
 
                                 break;
                             case "1-2 KM DAL GEOFENCE":
-                                alertIntent.putExtra("alertText", alertText);
+                                alertIntent.putExtra("alertText", allarme3);
                                 alertIntent.putExtra("coordinate", coordinate);
                                 alertIntent.putExtra("priority", 3);
                                 sendBroadcast(alertIntent);
@@ -403,50 +413,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         });
-        /*
-        myRef4user_state.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                // Questo metodo viene chiamato quando i dati nella reference dell'utente cambiano
-                String state = dataSnapshot.child("stato").getValue(String.class);
-                String idGeofence = dataSnapshot.child("id_geofence").getValue(String.class);
-                Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
-                alertIntent.putExtra("recognizedActivity", recognizedActivity);
-                //Log.d("IDGEOFENCE", idGeofence);
-                //CustomGeofence cg = geofence.get(idGeofence);
-                //String alertText = cg.getDescription();
 
-                Log.d("ordine", "1");
-                switch (state) {
-                    case "DENTRO IL GEOFENCE":
-                        //alertIntent.putExtra("alertText", alertText);
-                        //Log.d("ALERTTEXT", alertText);
-                        alertIntent.putExtra("priority", 1);
-                        sendBroadcast(alertIntent);
-                        break;
-                    case "A 1 KM DAL GEOFENCE":
-                        //alertIntent.putExtra("alertText", alertText);
-                        alertIntent.putExtra("priority", 2);
-                        sendBroadcast(alertIntent);
-
-                        break;
-                    case "1-2 KM DAL GEOFENCE":
-                        //alertIntent.putExtra("alertText", alertText);
-                        alertIntent.putExtra("priority", 3);
-                        sendBroadcast(alertIntent);
-                        break;
-                }
-
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                // Gestisci eventuali errori durante il recupero dei dati dalla reference
-                Log.d("Errore", "ERRORE: " + databaseError.getMessage());
-            }
-        });
-
-         */
 
         myRef4user_state.addChildEventListener(new ChildEventListener() {
             @Override
@@ -475,7 +442,10 @@ public class MainActivity extends AppCompatActivity {
                     alertIntent.putExtra("recognizedActivity", recognizedActivity);
                     //Log.d("IDGEOFENCE", idGeofence);
                     CustomGeofence cg = geofence.get(idGeofence);
-                    String alertText = cg.getDescription();
+                    String titolo = cg.getTitolo();
+                    String allarme1 = cg.getAllarme1();
+                    String allarme2 = cg.getAllarme2();
+                    String allarme3 = cg.getAllarme3();
 
                     Polygon p = cg.getPolygon();
                     List<GeoPoint> geoPoints = p.getPoints();
@@ -499,21 +469,21 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("ordine","1");
                     switch (state) {
                         case "DENTRO IL GEOFENCE":
-                            alertIntent.putExtra("alertText", alertText);
+                            alertIntent.putExtra("alertText", allarme1);
                             alertIntent.putExtra("coordinate", coordinate);
                             alertIntent.putExtra("priority", 1);
                             sendBroadcast(alertIntent);
                             Log.d("TESTSEIDENTRO", "IL GEOFENCE");
                             break;
                         case "A 1 KM DAL GEOFENCE":
-                            alertIntent.putExtra("alertText", alertText);
+                            alertIntent.putExtra("alertText", allarme2);
                             alertIntent.putExtra("coordinate", coordinate);
                             alertIntent.putExtra("priority", 2);
                             sendBroadcast(alertIntent);
 
                             break;
                         case "1-2 KM DAL GEOFENCE":
-                            alertIntent.putExtra("alertText", alertText);
+                            alertIntent.putExtra("alertText", allarme3);
                             alertIntent.putExtra("coordinate", coordinate);
                             alertIntent.putExtra("priority", 3);
                             sendBroadcast(alertIntent);
@@ -566,7 +536,7 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(getApplicationContext(), "START", Toast.LENGTH_SHORT).show();
 
         //inizializzo di default l'attività iniziale come IN_VEHICLE
-        recognizedActivity = WALKING;
+        recognizedActivity = IN_VEHICLE;
 
         // Inizializzo l'intentFilter per i risultati dell'Activity Recognition
         IntentFilter intentFilter = new IntentFilter("ACTION_ACTIVITY_RECOGNITION_RESULT");
@@ -917,7 +887,7 @@ public class MainActivity extends AppCompatActivity {
     }
     */
 
-    private void drawGeofence(String identificativo, String testo, ArrayList<ArrayList<Double>> points){
+    private void drawGeofence(String identificativo, String titolo, String allarme1, String allarme2, String allarme3,ArrayList<ArrayList<Double>> points){
         ArrayList<GeoPoint> polygonPoints = new ArrayList<>();
         for (int i=0;i<points.size(); i++){
             ArrayList<Double> coppiaCoordinate = points.get(i);
@@ -951,7 +921,7 @@ public class MainActivity extends AppCompatActivity {
         polygon.setStrokeColor(Color.RED); // Colore del bordo
         polygon.setStrokeWidth(2); // Larghezza del bordo
 
-        CustomGeofence cg = new CustomGeofence(testo, polygon);
+        CustomGeofence cg = new CustomGeofence(titolo, allarme1, allarme2, allarme3, polygon);
         geofence.put(identificativo, cg);
 
         Log.d("ORDINE", "4");

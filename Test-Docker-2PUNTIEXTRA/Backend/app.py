@@ -285,7 +285,10 @@ def upload_location():
 def add_geofence():
     # lista di liste contenente coppie [latitudine, longitudine] del geofence dell'allarme
     #coordinate_points = [[44.493760, 11.343032], [44.493760,11.343234], [44.493911, 11.343437], [44.494072, 11.343437], [44.494222, 11.343234], [44.494222, 11.343032]]
-    testo_allarme = request.form.get('testo_allarme', 'ALLARME')
+    titolo = request.form.get('titolo_allarme', 'ALLARME GENERALE')
+    allarme1 = request.form.get('testo_allarme1', 'SEI NEL GEOFENCE')
+    allarme2 = request.form.get('testo_allarme2', 'SEI A MENO DI 1KM DAL GEOFENCE')
+    allarme3 = request.form.get('testo_allarme3', 'SEI TRA 1 E 2 KM DAL GEOFENCE')
     coordinate = request.form.getlist('coordinates[]')
     coordinate_points = []
     
@@ -340,7 +343,10 @@ def add_geofence():
     
 
     nuova_notifica = {
-    'testo': testo_allarme,
+    'titolo': titolo,
+    'allarme1' : allarme1,
+    'allarme2' : allarme2,
+    'allarme3' : allarme3,
     'coordinate': coordinate_points,
     }
 
@@ -424,6 +430,39 @@ def get_car_user_data():
             SELECT ST_X(posizione) as lon, ST_Y(posizione) as lat
             FROM "emergency-schema"."user-information"
             WHERE activity = 'CAR';
+        """)
+
+        # Eseguo la query e ottieni i risultati
+        result = db.session.execute(query)
+
+        # Costruisco un elenco di dizionari rappresentanti i dati GeoJSON delle posizioni degli utenti
+        user_data = []
+        for row in result.fetchall():
+            lon, lat = row[0], row[1]
+            user_geojson = {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [lon, lat]
+                }
+            }
+            user_data.append(user_geojson)
+
+        # Restituisci i dati delle posizioni degli utenti come GeoJSON al frontend
+        return jsonify(user_data), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
+@app.route('/get_all_user_data', methods=['GET'])
+def get_all_user_data():
+    try:
+        # Eseguo una query per recuperare le informazioni sulle posizioni degli utenti dal database
+        query = text("""
+            SELECT ST_X(posizione) as lon, ST_Y(posizione) as lat
+            FROM "emergency-schema"."user-information";
         """)
 
         # Eseguo la query e ottieni i risultati

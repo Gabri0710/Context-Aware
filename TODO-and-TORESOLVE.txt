@@ -5,7 +5,5 @@ RESOLVE:
 - FIX METODO ELBOW BACKEND (NON FUNZIONA BENE)
 
 TODO:
-- Inserire campo per ogni avviso diverso (nel geofence, a 1km, 1-2km) (frontend)
-- Implementare visualizzazione per tutti gli utenti (sia in macchina che a piedi) e impostare come visualizzazione di default (frontend)
 - refactor app mobile e fix avvio delle variabili nell'OnCreate
 - inserire grafica in frontend

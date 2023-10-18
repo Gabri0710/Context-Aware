@@ -1,6 +1,7 @@
 <html lang="en">
   <head>
     <link rel="stylesheet" href=".\ol\ol.css" type="text/css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <style>
       .map {
         height: 550px;
@@ -25,14 +26,20 @@
     <h2>Geofence emergency admin setup</h2>
 
     <form id="addGeofenceForm">
-      <label for="inputData">Inserisci Testo dell'allarme da inserire e seleziona i punti su mappa:</label>
-      <input type="text" id="inputData" name="testo_allarme" autocomplete="off">
+      <label for="inputData">Inserisci Titolo dell'allarme:</label>
+      <input type="text" id="inputData" name="titolo_allarme" autocomplete="off"><br>
+      <label for="inputData">Inserisci Testo dell'allarme da inserire dentro il geofence:</label>
+      <input type="text" id="inputData" name="testo_allarme1" autocomplete="off"><br>
+      <label for="inputData">Inserisci Testo dell'allarme da inserire a 1km dal geofence:</label>
+      <input type="text" id="inputData" name="testo_allarme2" autocomplete="off"><br>
+      <label for="inputData">Inserisci Testo dell'allarme da inserire a 1-2km dal geofence:</label>
+      <input type="text" id="inputData" name="testo_allarme3" autocomplete="off">
       <button type="submit">Inserisci allarme</button>
     </form>
 
     
       
-
+    <button id="viewAllUserButton">Visualizza tutti gli utenti</button>
     <button id="viewWalkingUserButton">Visualizza gli utenti a piedi</button>
     <button id="viewCarUserButton">Visualizza gli utenti in macchina</button>
     <br>
@@ -66,6 +73,8 @@
         <br>
         <br>
         <button type="submit" form="deleteGeofenceForm" id="deleteButton" disabled>Cancella</button>
+        <button class="btn btn-primary" type="button">Primary action</button>
+        <i class="bi bi-2-square-fill"></i>
   
       </div>
       
@@ -75,6 +84,6 @@
 
     
 
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
   </body>
 </html>
