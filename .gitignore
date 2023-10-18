@@ -2,3 +2,6 @@
 Test-Locali/Backend/key.json
 Test-Docker-STABILE/Backend/key.json
 Test-Docker-2PUNTIEXTRA/Backend/key.json
+#ignoro le cartelle yaml (immagini diverse)
+Test-Docker-2PUNTIEXTRA/yaml
+Test-Docker-STABILE/yaml
