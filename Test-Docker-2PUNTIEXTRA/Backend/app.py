@@ -11,6 +11,8 @@ import csv
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+from yellowbrick.cluster import KElbowVisualizer
+
 
 app = Flask(__name__)
 
@@ -668,7 +670,7 @@ def get_cluster():
 
 
 
-
+'''
 @app.route('/get_cluster_elbow')
 def get_cluster_elbow():
     query = text("""
@@ -713,7 +715,9 @@ def get_cluster_elbow():
         kmeans.fit(dati)
         sse.append(kmeans.inertia_)
 
-    '''
+'''
+    
+'''
     # Traccia il grafico della varianza interna del cluster in funzione di K
     plt.figure(figsize=(8, 6))
     plt.plot(k_range, sse, marker='o')
@@ -722,7 +726,8 @@ def get_cluster_elbow():
     plt.title('Metodo del Gomito per Ottimizzare il Numero di Cluster')
     plt.grid(True)
     plt.show()
-    '''
+'''
+'''
 
     valore_max = max(sse)
     valore_min = min(sse)
@@ -759,6 +764,60 @@ def get_cluster_elbow():
 
     json_data = df.to_json(orient='records')
 
+
+    return jsonify(json_data), 200
+'''
+
+
+@app.route('/get_cluster_elbow')
+def get_cluster_elbow():
+    query = text("""
+           SELECT ST_X(posizione) AS longitudine, ST_Y(posizione) AS latitudine 
+            FROM "emergency-schema"."user-information";
+        """)
+   
+    result = db.session.execute(query)
+
+    query_result = result.fetchall()
+
+    csv_buffer = StringIO()
+
+
+    #with open('coordinate.csv', 'w', newline='') as csvfile:
+    writer = csv.writer(csv_buffer)
+    
+    # Scrivi l'intestazione del CSV
+    writer.writerow(['longitudine', 'latitudine'])
+    
+    # Scrivi i dati nel file CSV
+    for row in query_result:
+        writer.writerow(row)
+
+    csv_buffer.seek(0)
+
+    # Carica il file CSV come DataFrame pandas
+    df = pd.read_csv(csv_buffer)
+
+    # Seleziona le colonne di latitudine e longitudine per il clustering
+    dati = df[['longitudine', 'latitudine']]
+
+    model = KMeans(n_init=10)
+    visualizer = KElbowVisualizer(model, k=(1, 11), show=False)
+    visualizer.fit(dati)  # Adatta il modello ai dati
+    #visualizer.show()
+
+    best_k = visualizer.elbow_value_
+
+    kmeans = KMeans(n_clusters=best_k, n_init=10)
+
+    # Esegui il clustering K-Means
+    cluster_labels = kmeans.fit_predict(dati)
+
+    # Aggiungi le etichette di cluster al DataFrame originale
+    df['CLUSTER_ID'] = cluster_labels
+    
+
+    json_data = df.to_json(orient='records')
 
     return jsonify(json_data), 200
 

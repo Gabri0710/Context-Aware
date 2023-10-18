@@ -196,6 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     map.removeLayer(allUserLayer);
                     map.removeLayer(carUserLayer);
                     map.removeLayer(walkingUserLayer);
+                    map.removeLayer(clusterLayer);
                     //console.log(data)
                     var walkingUserFeatures = data.map(item => {
                         const coordinates = item.geometry.coordinates;
@@ -242,6 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     map.removeLayer(allUserLayer);
                     map.removeLayer(walkingUserLayer);
                     map.removeLayer(carUserLayer);
+                    map.removeLayer(clusterLayer);
                     console.log(data)
                     var carUserFeatures = data.map(item => {
                         const coordinates = item.geometry.coordinates;
@@ -278,7 +280,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error("Errore:", error);
                 });
         }
-        else{
+        else if (userVisualization=="ALL"){
             fetch("http://localhost:5001/get_all_user_data", {
                 method: "GET"
                 })
@@ -288,6 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     map.removeLayer(walkingUserLayer);
                     map.removeLayer(carUserLayer);
                     map.removeLayer(allUserLayer);
+                    map.removeLayer(clusterLayer);
                     //console.log(data)
                     var allUserFeatures = data.map(item => {
                         const coordinates = item.geometry.coordinates;

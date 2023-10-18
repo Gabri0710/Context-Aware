@@ -6,4 +6,6 @@ RESOLVE:
 
 TODO:
 - refactor app mobile e fix avvio delle variabili nell'OnCreate
+- Metodo Elbow può essere eseguito solo una volta (scazza con matplotlib eseguito su thread non-principale (non ha senso ma ok))
+- colori utenti del cluster sovrapposti dal colore dei geofence perché i geofence sono in continuo richiamo
 - inserire grafica in frontend
