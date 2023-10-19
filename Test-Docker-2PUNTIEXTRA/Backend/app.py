@@ -10,9 +10,15 @@ from flask_cors import CORS
 import csv
 import json
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')              #mi serve per specificare che il backend sia non interattivo (se no yellowbrick crea problemi avviando GUI)
 import matplotlib.pyplot as plt
 from yellowbrick.cluster import KElbowVisualizer
-
+import pandas as pd
+from sklearn.cluster import KMeans
+from io import StringIO
+import binascii
+from shapely import wkb
 
 app = Flask(__name__)
 
@@ -26,9 +32,6 @@ CORS(app)
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@database-deployment/geofence-emergency'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost:5431/geofence-emergency'
 db = SQLAlchemy(app)
-
-i = "user0"
-user_used = None
 
 
 # Inizializzo l'app Firebase nel tuo backend
@@ -59,57 +62,6 @@ def hello_world():
         return "<h1>ok</h1>"
     except Exception as e:
         return "<h1>error2</h1>"
-
-
-#DA RIFARE
-@app.route('/register', methods=['POST'])
-def register():
-    try:
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
-
-        # Verifica che l'utente con lo stesso username non esista già
-        existing_user = UserManagement.find_user_by_username(username)
-        if existing_user:
-            return jsonify({"error": "L'utente con questo username esiste già."}), 400
-
-        # Crea un nuovo utente con la password in chiaro
-        new_user = UserManagement(username=username, password=password)
-        new_user.create_user()
-
-        return jsonify({"message": "Registrazione completata con successo."}), 200
-
-    except Exception as e:
-        db.session.rollback()  # Annulla la transazione in caso di errore generico
-        return jsonify({"error": str(e)}), 500
-
-
-
-
-#DA RIFARE
-@app.route('/login', methods=['POST'])
-def login():
-    try:
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
-
-        # Trova l'utente nel database
-        user = UserManagement.find_user_by_username(username)
-        if not user:
-            return jsonify({"error": "Utente non trovato."}), 404
-
-        # Verifica la password in chiaro
-        if user.password != password:
-            return jsonify({"error": "Credenziali non valide."}), 401
-
-        user_used = username
-        return jsonify({"message": "Accesso effettuato con successo."}), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 
 
 @app.route('/upload_location', methods=['POST'])
@@ -491,8 +443,6 @@ def get_all_user_data():
 
 
 
-import binascii
-from shapely import wkb
 @app.route('/get_geofence', methods=['GET'])
 def get_geofence():
     try:
@@ -567,19 +517,6 @@ def get_geofence():
 
 
 
-    
-
-
-@app.route('/testforfrontend', methods=['POST'])
-def testforfrontend():
-    data_from_frontend = request.form.get('data')  # Ottieni i dati dal campo 'data' del modulo inviato (campo specificato sotto "name")
-    
-    print(data_from_frontend)
-    response_data = {'message': 'Messaggio ricevuvto: ' + data_from_frontend}
-    return jsonify(response_data), 200  
-
-
-
 @app.route('/createcsv')
 def createcsv():
     query = text("""
@@ -611,12 +548,6 @@ def createcsv():
     return jsonify(geojson_data), 200
 
 
-
-
-
-import pandas as pd
-from sklearn.cluster import KMeans
-from io import StringIO
 
 @app.route('/get_cluster', methods=['POST'])
 def get_cluster():
@@ -669,8 +600,6 @@ def get_cluster():
 
 
 
-
-'''
 @app.route('/get_cluster_elbow')
 def get_cluster_elbow():
     query = text("""
@@ -702,111 +631,14 @@ def get_cluster_elbow():
 
     # Seleziona le colonne di latitudine e longitudine per il clustering
     dati = df[['longitudine', 'latitudine']]
-
-    # Lista per conservare i valori di SSE (Somma dei quadrati degli errori)
-    sse = []
-
-    # Range di valori di K che vogliamo esplorare
-    k_range = range(1, 5)
-
-    # Esegui K-Means per ciascun valore di K e calcola SSE
-    for k in k_range:
-        kmeans = KMeans(n_clusters=k, n_init=10, random_state=0)
-        kmeans.fit(dati)
-        sse.append(kmeans.inertia_)
-
-'''
     
-'''
-    # Traccia il grafico della varianza interna del cluster in funzione di K
-    plt.figure(figsize=(8, 6))
-    plt.plot(k_range, sse, marker='o')
-    plt.xlabel('Numero di Cluster (K)')
-    plt.ylabel('SSE (Somma dei quadrati degli errori)')
-    plt.title('Metodo del Gomito per Ottimizzare il Numero di Cluster')
-    plt.grid(True)
-    plt.show()
-'''
-'''
-
-    valore_max = max(sse)
-    valore_min = min(sse)
-
-    threshold = (valore_max - valore_min) * 0.25 + valore_min
-    
-    
-    differenze_sse = []
-    for i in range(len(sse) - 1):
-        differenza = sse[i] - sse[i + 1]
-        differenze_sse.append(differenza)
-    
-    i=0
-    for item in differenze_sse:
-        if item<threshold:
-            optimal_k=i+1
-            break
-        i+=1
-    
-
-    #print("Numero ottimale di cluster secondo il metodo elbow:", optimal_k)
-    #print(f'SSE: {sse}')
-    #print(f'DIFFSSE: {differenze_sse}')
-
-
-    kmeans = KMeans(n_clusters=optimal_k, n_init=10)
-
-    # Esegui il clustering K-Means
-    cluster_labels = kmeans.fit_predict(dati)
-
-    # Aggiungi le etichette di cluster al DataFrame originale
-    df['CLUSTER_ID'] = cluster_labels
-    
-
-    json_data = df.to_json(orient='records')
-
-
-    return jsonify(json_data), 200
-'''
-
-
-@app.route('/get_cluster_elbow')
-def get_cluster_elbow():
-    query = text("""
-           SELECT ST_X(posizione) AS longitudine, ST_Y(posizione) AS latitudine 
-            FROM "emergency-schema"."user-information";
-        """)
-   
-    result = db.session.execute(query)
-
-    query_result = result.fetchall()
-
-    csv_buffer = StringIO()
-
-
-    #with open('coordinate.csv', 'w', newline='') as csvfile:
-    writer = csv.writer(csv_buffer)
-    
-    # Scrivi l'intestazione del CSV
-    writer.writerow(['longitudine', 'latitudine'])
-    
-    # Scrivi i dati nel file CSV
-    for row in query_result:
-        writer.writerow(row)
-
-    csv_buffer.seek(0)
-
-    # Carica il file CSV come DataFrame pandas
-    df = pd.read_csv(csv_buffer)
-
-    # Seleziona le colonne di latitudine e longitudine per il clustering
-    dati = df[['longitudine', 'latitudine']]
-
     model = KMeans(n_init=10)
-    visualizer = KElbowVisualizer(model, k=(1, 11), show=False)
+    visualizer = KElbowVisualizer(model, k=(1, 11), visualize=False)
     visualizer.fit(dati)  # Adatta il modello ai dati
     #visualizer.show()
 
     best_k = visualizer.elbow_value_
+
 
     kmeans = KMeans(n_clusters=best_k, n_init=10)
 
@@ -816,6 +648,7 @@ def get_cluster_elbow():
     # Aggiungi le etichette di cluster al DataFrame originale
     df['CLUSTER_ID'] = cluster_labels
     
+    plt.close()
 
     json_data = df.to_json(orient='records')
 

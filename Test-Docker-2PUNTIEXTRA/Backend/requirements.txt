@@ -64,3 +64,4 @@ tzdata==2023.3
 uritemplate==4.1.1
 urllib3==2.0.6
 Werkzeug==3.0.0
+yellowbrick==1.5

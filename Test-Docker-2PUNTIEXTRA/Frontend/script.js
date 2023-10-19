@@ -327,9 +327,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error("Errore:", error);
                 });
         }
-        
-
-
+        else if (userVisualization=="CLUSTER"){
+            map.removeLayer(clusterLayer);
+            map.addLayer(clusterLayer);
+        }
     }
 
 
@@ -432,9 +433,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
             });
 
-            if(clusterMode==0)
-                updateUsersLocation();
+            
+            
             map.addLayer(geofenceLayer);
+            updateUsersLocation();
             
             
         })
@@ -597,6 +599,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     map.removeLayer(allUserLayer);
                     map.removeLayer(carUserLayer);
                     map.removeLayer(walkingUserLayer);
+                    map.removeLayer(clusterLayer);
                     console.log(data)
                     
                     var colorArray= new Array(100).fill("-1");
@@ -640,6 +643,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                     // Aggiungi il livello vettoriale alla mappa
                     map.addLayer(clusterLayer);
+                    userVisualization = "CLUSTER";
                     clusterMode=1;
                 })
                 .catch(error => {
@@ -711,6 +715,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                     // Aggiungi il livello vettoriale alla mappa
                     map.addLayer(clusterLayer);
+                    userVisualization = "CLUSTER";
                     clusterMode=1;
                 })
                 .catch(error => {
