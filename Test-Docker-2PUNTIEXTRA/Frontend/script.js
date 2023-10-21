@@ -5,25 +5,44 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(loadGeofence, 3000);
     setInterval(loadServer, 3000);
 
-    //oggetto Feature dove memorizzo i punti scelti
+    var walkingUserSource;                                                  //source utenti a piedi
+    var carUserSource;                                                      //source utenti in macchina
+    var allUserSource;                                                      //source di tutti gli utenti
+    var clusterSource;                                                      //source dei cluster
+    var walkingUserLayer;                                                   //layer degli utenti a piedi
+    var carUserLayer;                                                       //layer degli utenti in macchina
+    var allUserLayer;                                                       //layer di tutti gli utenti
+    var geofenceLayer;                                                      //layer dei geofence
+    var clusterLayer;                                                       //layer dei cluster
+    var serverLayer;                                                        //layer dei server
+    
+    var deletemode = 0;                                                     //flag per capire se stiamo cliccando su un geofence già esistente (per eliminarlo)
+    var featureToDelete = null;                                             //feature associata al geofence da eliminare
+    var userVisualization = "ALL";                                          //variabile che memorizza la tipologia di visualizzazione che vogliamo (piedi, macchina, cluster)
+
+    var geofence_idLabel = document.getElementById('id_geofence_label');    //riferimento alla label del geofence selezionato
+    var geofence_nUsersLabel = document.getElementById('n_utenti_label');   //riferimento alla label che esprime il numero di utenti del geofence selezionato
+    
+
+    //oggetto Feature dove memorizzo i punti scelti per la creazione del geofence
     var selectedPoints = new ol.Collection();
 
-    //oggetto Source, mi serve per prendere in input delle Feature e passarle a un Layer successivamente
+    //oggetto Source, mi serve per prendere in input le Feature riguardanti i punti scelti per definire il geofence e passarle a un Layer successivamente
     var vectorPoints = new ol.source.Vector({
         features: selectedPoints
     });
 
-    //Layer dei punti scelti
+    //Layer dei punti scelti per il geofence
     var pointsLayer = new ol.layer.Vector({
         source: vectorPoints,
         style: new ol.style.Style({
             image: new ol.style.Circle({
               radius: 6,
               fill: new ol.style.Fill({
-                color: 'red' // Colore di riempimento del cerchietto
+                color: 'red' 
               }),
               stroke: new ol.style.Stroke({
-                color: 'black', // Colore del bordo del cerchietto
+                color: 'black', 
                 width: 2
               })
             })
@@ -38,19 +57,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     osmLayer.setVisible(true);
 
-    var walkingUserSource;
-    var carUserSource;
-    var allUserSource;
-    var walkingUserLayer;
-    var carUserLayer;
-    var allUserLayer;
-    var geofenceLayer;
-    var userVisualization = "ALL";
-
-    var clusterSource;
-    var clusterLayer;
-    var clusterMode = 0;
-
+    
+    //inizializzo la mappa con i layer scelti
     var map = new ol.Map({
         target: 'map',
         layers: [osmLayer, pointsLayer], 
@@ -58,40 +66,38 @@ document.addEventListener('DOMContentLoaded', function() {
             center: ol.proj.fromLonLat([11.3394883, 44.4938134]),
             zoom: 13, 
         })
-        });
+    });
     
     
-    var openmenu = 0;
-    var idToDelete = "";
-    var featureToDelete = null;
-    var geofence_idLabel = document.getElementById('id_geofence_label');
-    var geofence_nUsersLabel = document.getElementById('n_utenti_label');
-    
-    
-
+     
+    // funzione che viene richiamata al click
     map.on('click', function(event) {
-        if (openmenu==1){
-            //geofence_label.textContent = idToDelete;
-            geofence_idLabel.textContent = featureToDelete.get('id')
-            geofence_nUsersLabel.textContent = featureToDelete.get('n_users').toString();
-            document.getElementById("deleteButton").removeAttribute("disabled");
+        // se stiamo cliccando su un geofence
+        if (deletemode==1){
+            geofence_idLabel.textContent = featureToDelete.get('id')                                    //aggiorno la label di visualizzazione
+            geofence_nUsersLabel.textContent = featureToDelete.get('n_users').toString();                //aggiorno la label di visualizzazione
+            document.getElementById("deleteButton").removeAttribute("disabled");                        //attivo il button per cancellare il geofence
         }
 
         else{
+            //se stiamo cliccando in un altro punto e avevamo precedentemente selezionato un geofence
             if (geofence_idLabel.textContent !== "") {
-                geofence_idLabel.textContent = "";
-                geofence_nUsersLabel.textContent = "";
-                featureToDelete = null;
-                document.getElementById("deleteButton").setAttribute("disabled", "true");
+                geofence_idLabel.textContent = "";                                                      //aggiorno la label di visualizzazione      
+                geofence_nUsersLabel.textContent = "";                                                  //aggiorno la label di visualizzazione
+                featureToDelete = null;                                                                 //porto a null la label da eliminare
+                document.getElementById("deleteButton").setAttribute("disabled", "true");               //disabilito il button per la visualizzazione
             }
             else{
+                //se sto tenendo ctrl premuto
                 if (event.originalEvent.ctrlKey) {
-                    selectedPoints.pop()
+                    selectedPoints.pop()                                                                //faccio il pop dell'ultimo punto selezionato
                 }
+
+                //se sto solo cliccando
                 else{
-                    var coordinate = event.coordinate;
-                    var pointFeature = new ol.Feature(new ol.geom.Point(coordinate));
-                    selectedPoints.push(pointFeature);
+                    var coordinate = event.coordinate;                                                  //prendo le coordinate del punto
+                    var pointFeature = new ol.Feature(new ol.geom.Point(coordinate));                   //creo un nuovo punto con le coordinate del click
+                    selectedPoints.push(pointFeature);                                                  //aggiungo il punto alla mia collezione di punti scelti per la definizione del geofence
                 }
             }
             
@@ -101,103 +107,42 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 
+    // funzione che viene richiamata al movimento del mouse
     map.on('pointermove', function(event) {
+        //inizializzo la feature con quella presente nella posizione del mouse
         var feature = map.forEachFeatureAtPixel(event.pixel, function(feature) {
             return feature;
         });
         
+        //se esiste la feature e ha un id (quindi è una feature associata a un geofence)
         if (feature && feature.get('id')){
             console.log(feature.get('id'))
-            openmenu = 1;
-            featureToDelete = feature;
-            idToDelete = feature.get('id');
+            deletemode = 1;                                                             //abilito il flag per la cancellazione
+            featureToDelete = feature;                                                  //imposto la feature da eliminare con quella selezionata
         }
         else{
-            idToDelete = "";
-            openmenu = 0;
+            deletemode = 0;                                                             //disabilito il flag per la cancellazione
         }
         
-        //if (feature && feature.get('id')) {
-            //var id = feature.get('id');
-            //var coordinates = polygonCoordinatesById[id];  // Ottieni le coordinate del poligono dall'ID
-            // Visualizza l'ID del poligono e le sue coordinate quando passi sopra con il mouse
-           // console.log('ID del poligono:', id);
-           // console.log('Coordinate del poligono:', coordinates);
-        //} else {
-            // Non c'è alcun poligono sotto il cursore del mouse
-            // Puoi fare qualcosa qui se vuoi gestire questo caso
-       // }
     });
 
-    function clusterUser(){
-        formData = new FormData(this);
-        
-        fetch("http://localhost:5001/createcluster", {
-                method: "POST",
-                body : formData
-                })
-                .then(response => response.json())
-                .then(data => {
 
-                    const jsonData = JSON.parse(data);
-                    map.removeLayer(allUserLayer);
-                    map.removeLayer(carUserLayer);
-                    map.removeLayer(walkingUserLayer);
-                    console.log(data)
-                    
-                    
-                    var clusterFeatures = jsonData.map(item => {
-                        const coordinates = [item.longitudine, item.latitudine];
-                        
-                        const point = new ol.Feature({
-                            geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
-                        });
-                        var cluster_id = item.CLUSTER_ID;
-                        
-                        var fillColor = 'rgba('+255*cluster_id+','+255*(1-cluster_id)+', 0, 0.8)'
-                        point.setStyle(new ol.style.Style({
-                            image: new ol.style.Circle({
-                                radius: 6,
-                                fill: new ol.style.Fill({
-                                    color: fillColor 
-                                })
-                            })
-                        }));
-                        return point;
-                    });
-                
-                    // Creazione del livello vettoriale
-                    clusterSource = new ol.source.Vector({
-                        features: clusterFeatures
-                    });
-                    
-                
-                    clusterLayer = new ol.layer.Vector({
-                        source: clusterSource
-                    });
-                
-                    // Aggiungi il livello vettoriale alla mappa
-                    map.addLayer(clusterLayer);
-                })
-                .catch(error => {
-                    // Gestisci gli errori
-                    console.error("Errore:", error);
-                });
-    }
-
+    //funzione di aggiornamento della posizione degli utenti
     function updateUsersLocation(){
+        //se la visualizzazione è impostata agli utenti a piedi
         if (userVisualization=="WALKING"){
                 fetch("http://localhost:5001/get_walking_user_data", {
                 method: "GET"
                 })
                 .then(response => response.json())
                 .then(data => {
-                    console.log("WALKING");
+                    //rimuovo i layer presenti
                     map.removeLayer(allUserLayer);
                     map.removeLayer(carUserLayer);
                     map.removeLayer(walkingUserLayer);
                     map.removeLayer(clusterLayer);
-                    //console.log(data)
+
+                    //inizializzo le feature associate alla posizione con i dati ottenuti dal backend
                     var walkingUserFeatures = data.map(item => {
                         const coordinates = item.geometry.coordinates;
                         const point = new ol.Feature({
@@ -206,45 +151,47 @@ document.addEventListener('DOMContentLoaded', function() {
                         return point;
                     });
                 
-                    // Creazione del livello vettoriale
+                    // Source associata alle feature
                     walkingUserSource = new ol.source.Vector({
                         features: walkingUserFeatures,
                     });
                     
-                
+                    
+                    //layer associato agli utenti a piedi
                     walkingUserLayer = new ol.layer.Vector({
                         source: walkingUserSource,
                         style: new ol.style.Style({
                             image: new ol.style.Circle({
                                 radius: 6,
                                 fill: new ol.style.Fill({
-                                    color: 'blue', // Colore del punto
+                                    color: 'blue',
                                 }),
                             }),
                         }),
                     });
                 
-                    // Aggiungi il livello vettoriale alla mappa
+                    // Aggiungo il layer
                     map.addLayer(walkingUserLayer);
                     userVisualization = "WALKING";
                 })
                 .catch(error => {
-                    // Gestisci gli errori
                     console.error("Errore:", error);
                 });
         }
+        //se la visualizzazione è impostata agli utenti in macchina
         else if(userVisualization=="CAR"){
                 fetch("http://localhost:5001/get_car_user_data", {
                 method: "GET"
                 })
                 .then(response => response.json())
                 .then(data => {
-                    console.log("CAR");
+                    //rimuovo i layer presenti
                     map.removeLayer(allUserLayer);
                     map.removeLayer(walkingUserLayer);
                     map.removeLayer(carUserLayer);
                     map.removeLayer(clusterLayer);
-                    console.log(data)
+                    
+                    //inizializzo le feature associate alla posizione con i dati ottenuti dal backend
                     var carUserFeatures = data.map(item => {
                         const coordinates = item.geometry.coordinates;
                         const point = new ol.Feature({
@@ -254,44 +201,46 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     
                 
-                    // Creazione del livello vettoriale
+                    // Source associata alle feature
                     carUserSource = new ol.source.Vector({
                         features: carUserFeatures,
                     });
                 
+                    //layer associato agli utenti in macchina
                     carUserLayer = new ol.layer.Vector({
                         source: carUserSource,
                         style: new ol.style.Style({
                             image: new ol.style.Circle({
                                 radius: 6,
                                 fill: new ol.style.Fill({
-                                    color: 'blue', // Colore del punto
+                                    color: 'blue',
                                 }),
                             }),
                         }),
                     });
                 
-                    // Aggiungi il livello vettoriale alla mappa
+                    // Aggiungo il layer alla mappa
                     map.addLayer(carUserLayer);
                     userVisualization = "CAR";
                 })
                 .catch(error => {
-                    // Gestisci gli errori
                     console.error("Errore:", error);
                 });
         }
         else if (userVisualization=="ALL"){
+            //se la visualizzazione è impostata a tutti gli utenti (sia a piedi che in macchina)
             fetch("http://localhost:5001/get_all_user_data", {
                 method: "GET"
                 })
                 .then(response => response.json())
                 .then(data => {
-                    console.log("ALL");
+                    //rimuovo i layer presenti
                     map.removeLayer(walkingUserLayer);
                     map.removeLayer(carUserLayer);
                     map.removeLayer(allUserLayer);
                     map.removeLayer(clusterLayer);
-                    //console.log(data)
+                    
+                    //inizializzo le feature associate alla posizione con i dati ottenuti dal backend
                     var allUserFeatures = data.map(item => {
                         const coordinates = item.geometry.coordinates;
                         const point = new ol.Feature({
@@ -301,50 +250,51 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     
                 
-                    // Creazione del livello vettoriale
+                    // Source associata alle feature
                     allUserSource = new ol.source.Vector({
                         features: allUserFeatures
                     });
                 
+                    //layer associato a tutti gli utenti
                     allUserLayer = new ol.layer.Vector({
                         source: allUserSource,
                         style: new ol.style.Style({
                             image: new ol.style.Circle({
                                 radius: 6,
                                 fill: new ol.style.Fill({
-                                    color: 'blue', // Colore del punto
+                                    color: 'blue',
                                 }),
                             }),
                         }),
                     });
                 
-                    // Aggiungi il livello vettoriale alla mappa
+                    // Aggiungo il layer
                     map.addLayer(allUserLayer);
                     userVisualization = "ALL";
                 })
                 .catch(error => {
-                    // Gestisci gli errori
                     console.error("Errore:", error);
                 });
         }
+        //se la visualizzazione è impostata a tutti gli utenti (sia a piedi che in macchina)
         else if (userVisualization=="CLUSTER"){
+            //aggiorno il layer per metterlo in primo piano
             map.removeLayer(clusterLayer);
             map.addLayer(clusterLayer);
         }
     }
 
 
-    var serverLayer;
-
+    //funzione che carica i server presenti
     function loadServer(){
             fetch("http://localhost:5001/get_server", {
             method: "GET"
             })
             .then(response => response.json())
             .then(data => {
-                console.log("ok");
-                console.log(data);
                 map.removeLayer(serverLayer);
+
+                // inizializzo le feature associate alle posizioni dei server ottenute dal backend
                 var serverFeatures = data.map(item => {
                     const coordinates = item.geometry.coordinates;
                     const point = new ol.Feature({
@@ -353,29 +303,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     return point;
                 });
             
-                // Creazione del livello vettoriale
+                // Source associata alle feature
                 serverSource = new ol.source.Vector({
                     features: serverFeatures,
                 });
                 
-            
+                //layer associato ai server
                 serverLayer = new ol.layer.Vector({
                     source: serverSource,
                     style: new ol.style.Style({
                         image: new ol.style.Circle({
                             radius: 7,
                             fill: new ol.style.Fill({
-                                color: 'black', // Colore del punto
+                                color: 'black', 
                             }),
                         }),
                     }),
                 });
             
-                // Aggiungi il livello vettoriale alla mappa
+                // Aggiungo il layer
                 map.addLayer(serverLayer);
             })
             .catch(error => {
-                // Gestisci gli errori
                 console.error("Errore:", error);
             });
         
@@ -383,48 +332,49 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
+    //funzione che carica i geofence presenti
     function loadGeofence(){
         fetch("http://localhost:5001/get_geofence", {
             method: "GET"
         })
         .then(response => response.json())
         .then(data => {
-            console.log(data);
+            //rimuovo lo stesso layer coi dati precedenti
             map.removeLayer(geofenceLayer);
-            var polygonsFeatures = [];
-            data.forEach(function(obj) {
-                var id = obj.id;
-                var n_users = obj.n_users; 
-                var points = obj.points;
-                var coordinates = points.map(function(record) {
-                    return ol.proj.fromLonLat(record.geometry.coordinates);
+            var polygonsFeatures = [];                                                 //array di features (punti)
+            data.forEach(function(obj) {                                               //per ogni geofence che arriva
+                var id = obj.id;                                                       //prendo l'id del geofence
+                var n_users = obj.n_users;                                             //prendo il numero di utenti al suo interno
+                var points = obj.points;                                               //prendo i punti che lo compongono
+                var coordinates = points.map(function(record) {                        //per ogni coordinata del punto
+                    return ol.proj.fromLonLat(record.geometry.coordinates);             //la converto in formato richiesto dal frontend e le memorizzo
                 });
                 
+                var polygon = new ol.geom.Polygon([coordinates]);                       //creo un poligono con le coordinate
+                var singlePolygonFeature = new ol.Feature(polygon);                     //creo una feature a partire dal poligono
 
-                var polygon = new ol.geom.Polygon([coordinates]);
-                var singlePolygonFeature = new ol.Feature(polygon);
-
-                //prendo il colore e lo normalizzo, poi definisco il fillColor. VALORE 6=NUMERO MASSIMO DI UTENTI, DA MODIFICARE IN SEGUITO
+                //prendo il colore e lo normalizzo, poi definisco il fillColor (colore del geofence). VALORE 6=NUMERO MASSIMO DI UTENTI, DA MODIFICARE IN SEGUITO
                 var colorNormalization = n_users/6;
                 var fillColor = 'rgba('+255*colorNormalization+','+255*(1-colorNormalization)+', 0, 0.2)'
                 
-                //setto il colore di riempimento di ogni singola feature
+                // feature associato a ogni poligono, setto il colore di riempimento di ogni singola feature
                 singlePolygonFeature.setStyle(new ol.style.Style({
                     fill: new ol.style.Fill({
                         color: fillColor
                     }),
                     stroke: new ol.style.Stroke({
-                        color: 'grey', // Colore del bordo del poligono
-                        width: 1 // Larghezza del bordo
+                        color: 'grey', // Colore del bordo
+                        width: 1
                     })
                 }));
 
-                singlePolygonFeature.set('id', id);
-                singlePolygonFeature.set('n_users', n_users);
+                singlePolygonFeature.set('id', id);                                                     //associo l'id alla feature
+                singlePolygonFeature.set('n_users', n_users);                                           //associo il numeto utenti alla feature
 
                 //pusho ogni singola feature (poligono) personalizzata in un array di features
                 polygonsFeatures.push(singlePolygonFeature);
             });
+
 
             //creo il layer con i vari poligoni personalizzati
             geofenceLayer = new ol.layer.Vector({
@@ -433,48 +383,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
             });
 
-            
-            
+            //aggiungo il layer, aggiorno la posizione degli utenti
             map.addLayer(geofenceLayer);
-            updateUsersLocation();
-            
-            
+            updateUsersLocation(); 
         })
         .catch(error => {
-            // Gestisci gli errori
             console.error("Errore:", error);
         });
     }
 
-    /*
-    function deleteGeofence(){
-        event.preventDefault(); // Previeni il comportamento di default del modulo (l'invio della pagina)
-
-        var formData = new FormData(this); // Crea un oggetto FormData dal modulo
-
-        // Esegui una richiesta POST al backend
-        fetch("http://localhost:5001/delete_geofence", {
-            method: "POST",
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Gestisci la risposta dal backend
-            console.log(data);
-            loadGeofence();
-        })
-        .catch(error => {
-            // Gestisci gli errori
-            console.error("Errore:", error);
-        });
-    }
-    */
-
+    //funzione per eliminare il geofence, prende in input l'id del geofence
     function deleteGeofence(s){
-        
+        //associo la stringa dell'id all'identificatore da passare al backend
         var queryString = 'id_allarme='+s;
 
-        // Esegui una richiesta POST al backend
+        // mando al backend
         fetch("http://localhost:5001/delete_geofence", {
             method: "POST",
             headers: {
@@ -484,106 +407,80 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
-            // Gestisci la risposta dal backend
             console.log(data);
-            //loadGeofence();
         })
         .catch(error => {
-            // Gestisci gli errori
             console.error("Errore:", error);
         });
     }
 
+    //quando viene aggiunto un geofence
     document.getElementById("addGeofenceForm").addEventListener("submit", function(event) {
         event.preventDefault(); // impedisce alla pagina di ricaricarsi quando viene inviato il modulo
 
-        var formData = new FormData(this); // Creo un oggetto FormData
+        var formData = new FormData(this); // Creo un oggetto FormData con i dati associati nel form (testo allarme e coordinate)
 
         //definisco le proiezioni. Sul web si lavora con EPSG:3857 ma devo convertirlo a EPSG:4326 per lavorare con le nostre coordinate note
         var projection3857 = ol.proj.get('EPSG:3857');
         var projection4326 = ol.proj.get('EPSG:4326');
 
+        //per ogni punto selezionato che definisce i punti della feature
         selectedPoints.forEach(function(feature) {
-            // Ottengo le coordinate della feature
-            
+
+            // Ottengo le coordinate della feature e le converto
             var coordinates = ol.proj.transform(feature.getGeometry().getCoordinates(), projection3857, projection4326);
             
-            // Aggiungo le coordinate alla FormData con chiave coordinates
+            // Aggiungo le coordinate alla FormData
             formData.append('coordinates[]', coordinates);
             
         });
 
-        // Eseguo una richiesta POST al backend
+        // chiamo il backend
         fetch("http://localhost:5001/add_geofence", {
             method: "POST",
             body: formData
         })
         .then(response => response.json())
         .then(data => {
-            // Gestisco la risposta dal backend
-            //console.log(data);
-            //map.removeLayer(pointsLayer);
-            //map.removeLayer(geofenceLayer);
-            selectedPoints.clear();
-            loadGeofence();
+            selectedPoints.clear();                                 //tolgo i punti selezionati
+            loadGeofence();                                         //richiamo il caricamento del geofence per caricare anche questo nuovo
         })
         .catch(error => {
-            // Gestisco gli errori
             console.error("Errore:", error);
         });
 
     });
 
+    //quando viene cliccato il pulsante per eliminare il geofence
     document.getElementById("deleteGeofenceForm").addEventListener("submit", function(event) {
-        /*
-         formData = new FormData(this); // Crea un oggetto FormData dal modulo
-
-        // Esegui una richiesta POST al backend
-        fetch("http://localhost:5001/delete_geofence", {
-            method: "POST",
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Gestisci la risposta dal backend
-            console.log(data);
-            loadGeofence();
-        })
-        .catch(error => {
-            // Gestisci gli errori
-            console.error("Errore:", error);
-        });
-        */
-        event.preventDefault();
-        deleteGeofence(featureToDelete.get('id'));
-        geofence_idLabel.textContent = "";
-        geofence_nUsersLabel.textContent = "";
-        featureToDelete = null;
-        document.getElementById("deleteButton").setAttribute("disabled", "true");
+        event.preventDefault();                                                                  //evito la ricarica della pagina
+        deleteGeofence(featureToDelete.get('id'));                                              //richiamo la funzione passando l'id del geofence associato
+        geofence_idLabel.textContent = "";                                                     //pulisco le label
+        geofence_nUsersLabel.textContent = "";                                                 //pulisco le label
+        featureToDelete = null;                                                               //riporto la feature da cancellare a null
+        document.getElementById("deleteButton").setAttribute("disabled", "true");             //disabilito il pulsante per cancellare
     });
 
-
+    //quando viene cliccato il pulsante per vedere gli utenti a piedi
     document.getElementById("viewWalkingUserButton").addEventListener("click", function() {
-        userVisualization = "WALKING";
-        clusterMode=0;
-        updateUsersLocation();
+        userVisualization = "WALKING";                                                          //imposto la visualizzazione richiesta
+        updateUsersLocation();                                                                  //richiamo la funzione
     });
 
-
+    //quando viene cliccato il pulsante per vedere gli utenti in macchina
     document.getElementById("viewCarUserButton").addEventListener("click", function() {
-        userVisualization = "CAR";
-        clusterMode=0;
-        updateUsersLocation();
+        userVisualization = "CAR";                                                              //imposto la visualizzazione richiesta
+        updateUsersLocation();                                                                  //richiamo la funzione
     });
 
-
+    //quando viene cliccato il pulsante per vedere tutti gli utenti
     document.getElementById("viewAllUserButton").addEventListener("click", function() {
-        userVisualization = "ALL";
-        clusterMode=0;
-        updateUsersLocation();
+        userVisualization = "ALL";                                                              //imposto la visualizzazione richiesta
+        updateUsersLocation();                                                                  //richiamo la funzione
     });
 
 
+    //quando viene cliccato il pulsante per richiedere il cluster
     document.getElementById("ClusterForm").addEventListener("submit", function() {
         event.preventDefault();
         formData = new FormData(this);
@@ -594,32 +491,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .then(response => response.json())
                 .then(data => {
-
                     const jsonData = JSON.parse(data);
+
+                    //rimuovo i layer presenti
                     map.removeLayer(allUserLayer);
                     map.removeLayer(carUserLayer);
                     map.removeLayer(walkingUserLayer);
                     map.removeLayer(clusterLayer);
-                    console.log(data)
                     
+                    //creo un array dei colori associati a ogni feature e lo inizializzo tutto a -1
                     var colorArray= new Array(100).fill("-1");
-
+                    
+                    //definisco le feature associata al cluster
                     var clusterFeatures = jsonData.map(item => {
-                        const coordinates = [item.longitudine, item.latitudine];
+                        //associo le coordinate
+                        const coordinates = [item.longitudine, item.latitudine];            
                         
+                        //creo un punto associato alle coordinate
                         const point = new ol.Feature({
                             geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
                         });
+
+                        //ottengo il cluster id
                         var cluster_id = item.CLUSTER_ID;
 
+                        //se il cluster id è uguale a -1 = non è ancora stato associato un colore a quel cluster id
                         if(colorArray[cluster_id]==="-1"){
+                            //associo un colore casuale a quel cluster
                             fillColor = 'rgba('+Math.floor(Math.random() * 256)+','+Math.floor(Math.random() * 256)+','+Math.floor(Math.random() * 256)+', 0.8)'
                             colorArray[cluster_id] = fillColor;
                         }
-
-                        console.log(fillColor);
                         
-                        //var fillColor = 'rgba('+255*cluster_id+','+255*(1-cluster_id)+', 0, 0.8)'
+                        //setto lo stile del punto associandogli il colore presente nell'array
                         point.setStyle(new ol.style.Style({
                             image: new ol.style.Circle({
                                 radius: 6,
@@ -631,60 +534,64 @@ document.addEventListener('DOMContentLoaded', function() {
                         return point;
                     });
                 
-                    // Creazione del livello vettoriale
+                    // source associato alle feature
                     clusterSource = new ol.source.Vector({
                         features: clusterFeatures
                     });
                     
-                
+                    //layer associato ai cluster
                     clusterLayer = new ol.layer.Vector({
                         source: clusterSource
                     });
                 
-                    // Aggiungi il livello vettoriale alla mappa
+                    // Aggiungo il layer
                     map.addLayer(clusterLayer);
                     userVisualization = "CLUSTER";
-                    clusterMode=1;
                 })
                 .catch(error => {
-                    // Gestisci gli errori
                     console.error("Errore:", error);
                 });
     });
 
 
-    
+    //quando viene cliccato il pulsante per richiedere il cluster col metodo elbow
     document.getElementById("viewElbowCluster").addEventListener("click", function() {
         fetch("http://localhost:5001/get_cluster_elbow", {
                 method: "GET"
                 })
                 .then(response => response.json())
                 .then(data => {
-
                     const jsonData = JSON.parse(data);
+
+                    //rimuovo i layer presenti
                     map.removeLayer(allUserLayer);
                     map.removeLayer(carUserLayer);
                     map.removeLayer(walkingUserLayer);
                     map.removeLayer(clusterLayer);
-                    console.log(data)
                     
+                    //creo un array dei colori associati a ogni feature e lo inizializzo tutto a -1
                     var colorArray= new Array(100).fill("-1");
+
+                    //definisco le feature associata al cluster
                     var clusterFeatures = jsonData.map(item => {
+                        //associo le coordinate
                         const coordinates = [item.longitudine, item.latitudine];
                         
+                        //creo un punto associato alle coordinate
                         const point = new ol.Feature({
                             geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
                         });
+
+                        //ottengo il cluster id
                         var cluster_id = item.CLUSTER_ID;
 
+                        //se il cluster id è uguale a -1 = non è ancora stato associato un colore a quel cluster id
                         if(colorArray[cluster_id]==="-1"){
                             fillColor = 'rgba('+Math.floor(Math.random() * 256)+','+Math.floor(Math.random() * 256)+','+Math.floor(Math.random() * 256)+', 0.8)'
                             colorArray[cluster_id] = fillColor;
                         }
 
-                        console.log(fillColor);
-                        
-                        //var fillColor = 'rgba('+255*cluster_id+','+255*(1-cluster_id)+', 0, 0.8)'
+                        //setto lo stile del punto associandogli il colore presente nell'array
                         point.setStyle(new ol.style.Style({
                             image: new ol.style.Circle({
                                 radius: 6,
@@ -696,30 +603,30 @@ document.addEventListener('DOMContentLoaded', function() {
                         return point;
                     });
 
+                    //ottengo il numero di cluster restituiti verificando quante posizioni dell'array ho riempito
                     var n_cluster = 0;
                     while (colorArray[n_cluster]!="-1" && n_cluster<100){
                         n_cluster+=1;
                     }
 
-                    
+                    //setto la label dicendo quant'è il numero ottimale di cluster rilevati
                     document.getElementById("elbowLabel").textContent = "Numero ottimale di cluster rilevati con metodo elbow: " + n_cluster;
-                    // Creazione del livello vettoriale
+                    
+                    //source associata alle feature
                     clusterSource = new ol.source.Vector({
                         features: clusterFeatures
                     });
                     
-                
+                    //layer associato ai cluster
                     clusterLayer = new ol.layer.Vector({
                         source: clusterSource
                     });
                 
-                    // Aggiungi il livello vettoriale alla mappa
+                    // Aggiungo il layer
                     map.addLayer(clusterLayer);
                     userVisualization = "CLUSTER";
-                    clusterMode=1;
                 })
                 .catch(error => {
-                    // Gestisci gli errori
                     console.error("Errore:", error);
                 });
     });
