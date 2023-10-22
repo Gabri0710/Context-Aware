@@ -465,18 +465,21 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById("viewWalkingUserButton").addEventListener("click", function() {
         userVisualization = "WALKING";                                                          //imposto la visualizzazione richiesta
         updateUsersLocation();                                                                  //richiamo la funzione
+        document.getElementById("elbowLabel").textContent = "";
     });
 
     //quando viene cliccato il pulsante per vedere gli utenti in macchina
     document.getElementById("viewCarUserButton").addEventListener("click", function() {
         userVisualization = "CAR";                                                              //imposto la visualizzazione richiesta
         updateUsersLocation();                                                                  //richiamo la funzione
+        document.getElementById("elbowLabel").textContent = "";
     });
 
     //quando viene cliccato il pulsante per vedere tutti gli utenti
     document.getElementById("viewAllUserButton").addEventListener("click", function() {
         userVisualization = "ALL";                                                              //imposto la visualizzazione richiesta
         updateUsersLocation();                                                                  //richiamo la funzione
+        document.getElementById("elbowLabel").textContent = "";
     });
 
 
@@ -544,6 +547,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         source: clusterSource
                     });
                 
+                    //tolgo la label del metodo elbow se presente
+                    document.getElementById("elbowLabel").textContent = "";
+
                     // Aggiungo il layer
                     map.addLayer(clusterLayer);
                     userVisualization = "CLUSTER";
