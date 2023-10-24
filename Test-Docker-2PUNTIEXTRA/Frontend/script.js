@@ -15,14 +15,16 @@ document.addEventListener('DOMContentLoaded', function() {
     var geofenceLayer;                                                      //layer dei geofence
     var clusterLayer;                                                       //layer dei cluster
     var serverLayer;                                                        //layer dei server
-    
+
+    var addmode = 1;                                                        //flag per capire se stiamo cercando di aggiungere un geofence
     var deletemode = 0;                                                     //flag per capire se stiamo cliccando su un geofence già esistente (per eliminarlo)
+    var isFeature = 0;
     var featureToDelete = null;                                             //feature associata al geofence da eliminare
     var userVisualization = "ALL";                                          //variabile che memorizza la tipologia di visualizzazione che vogliamo (piedi, macchina, cluster)
 
     var geofence_idLabel = document.getElementById('id_geofence_label');    //riferimento alla label del geofence selezionato
     var geofence_nUsersLabel = document.getElementById('n_utenti_label');   //riferimento alla label che esprime il numero di utenti del geofence selezionato
-    
+    var geofence_titleLabel = document.getElementById('titolo_geofence_label');
 
     //oggetto Feature dove memorizzo i punti scelti per la creazione del geofence
     var selectedPoints = new ol.Collection();
@@ -68,63 +70,75 @@ document.addEventListener('DOMContentLoaded', function() {
         })
     });
     
-    
-     
-    // funzione che viene richiamata al click
-    map.on('click', function(event) {
-        // se stiamo cliccando su un geofence
-        if (deletemode==1){
-            geofence_idLabel.textContent = featureToDelete.get('id')                                    //aggiorno la label di visualizzazione
-            geofence_nUsersLabel.textContent = featureToDelete.get('n_users').toString();                //aggiorno la label di visualizzazione
-            document.getElementById("deleteButton").removeAttribute("disabled");                        //attivo il button per cancellare il geofence
-        }
-
-        else{
-            //se stiamo cliccando in un altro punto e avevamo precedentemente selezionato un geofence
-            if (geofence_idLabel.textContent !== "") {
-                geofence_idLabel.textContent = "";                                                      //aggiorno la label di visualizzazione      
-                geofence_nUsersLabel.textContent = "";                                                  //aggiorno la label di visualizzazione
-                featureToDelete = null;                                                                 //porto a null la label da eliminare
-                document.getElementById("deleteButton").setAttribute("disabled", "true");               //disabilito il button per la visualizzazione
-            }
-            else{
-                //se sto tenendo ctrl premuto
-                if (event.originalEvent.ctrlKey) {
-                    selectedPoints.pop()                                                                //faccio il pop dell'ultimo punto selezionato
-                }
-
-                //se sto solo cliccando
-                else{
-                    var coordinate = event.coordinate;                                                  //prendo le coordinate del punto
-                    var pointFeature = new ol.Feature(new ol.geom.Point(coordinate));                   //creo un nuovo punto con le coordinate del click
-                    selectedPoints.push(pointFeature);                                                  //aggiungo il punto alla mia collezione di punti scelti per la definizione del geofence
-                }
-            }
-            
-        }
-        
-        
-    });
-
-
     // funzione che viene richiamata al movimento del mouse
     map.on('pointermove', function(event) {
         //inizializzo la feature con quella presente nella posizione del mouse
         var feature = map.forEachFeatureAtPixel(event.pixel, function(feature) {
             return feature;
         });
+
         
         //se esiste la feature e ha un id (quindi è una feature associata a un geofence)
         if (feature && feature.get('id')){
-            console.log(feature.get('id'))
-            deletemode = 1;                                                             //abilito il flag per la cancellazione
+            //deletemode = 1;                                                             //abilito il flag per la cancellazione
+            isFeature = 1;
             featureToDelete = feature;                                                  //imposto la feature da eliminare con quella selezionata
         }
         else{
-            deletemode = 0;                                                             //disabilito il flag per la cancellazione
+            isFeature = 0;
+            //deletemode = 0;                                                             //disabilito il flag per la cancellazione
         }
         
     });
+    
+    // funzione che viene richiamata al click
+    map.on('click', function(event) {
+        // se stiamo cliccando su un geofence
+        if (deletemode==1){
+            if(isFeature==1){
+                geofence_idLabel.textContent = featureToDelete.get('id');                                    //aggiorno la label di visualizzazione
+                geofence_nUsersLabel.textContent = featureToDelete.get('n_users').toString();                //aggiorno la label di visualizzazione
+                geofence_titleLabel.textContent = featureToDelete.get('title');
+                document.getElementById("deleteButton").removeAttribute("disabled");                        //attivo il button per cancellare il geofence
+                document.getElementById("deleteButton").classList.add("btn-primary");
+                document.getElementById("deleteButton").classList.remove("btn-outline-secondary");
+                
+                updateMode("delete", "cluster", "addgeofence");
+                selectedPoints.clear();
+                addmode = 0;
+            }
+            else{
+                geofence_idLabel.textContent = "-";                                                      //aggiorno la label di visualizzazione      
+                geofence_nUsersLabel.textContent = "-";                                                  //aggiorno la label di visualizzazione
+                geofence_titleLabel.textContent = "-";
+                featureToDelete = null;                                                                 //porto a null la label da eliminare
+                document.getElementById("deleteButton").setAttribute("disabled", "true");               //disabilito il button per la visualizzazione
+                document.getElementById("deleteButton").classList.add("btn-outline-secondary");
+                document.getElementById("deleteButton").classList.remove("btn-primary");
+            }
+            
+        }
+
+        else if (addmode==1){
+            //se sto tenendo ctrl premuto
+            if (event.originalEvent.ctrlKey) {
+                selectedPoints.pop()                                                                //faccio il pop dell'ultimo punto selezionato
+            }
+
+            //se sto solo cliccando
+            else{
+                var coordinate = event.coordinate;                                                  //prendo le coordinate del punto
+                var pointFeature = new ol.Feature(new ol.geom.Point(coordinate));                   //creo un nuovo punto con le coordinate del click
+                selectedPoints.push(pointFeature);                                                  //aggiungo il punto alla mia collezione di punti scelti per la definizione del geofence
+            }
+                
+        }
+        
+        
+    });
+
+
+    
 
 
     //funzione di aggiornamento della posizione degli utenti
@@ -345,6 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
             data.forEach(function(obj) {                                               //per ogni geofence che arriva
                 var id = obj.id;                                                       //prendo l'id del geofence
                 var n_users = obj.n_users;                                             //prendo il numero di utenti al suo interno
+                var title = obj.title;
                 var points = obj.points;                                               //prendo i punti che lo compongono
                 var coordinates = points.map(function(record) {                        //per ogni coordinata del punto
                     return ol.proj.fromLonLat(record.geometry.coordinates);             //la converto in formato richiesto dal frontend e le memorizzo
@@ -370,6 +385,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 singlePolygonFeature.set('id', id);                                                     //associo l'id alla feature
                 singlePolygonFeature.set('n_users', n_users);                                           //associo il numeto utenti alla feature
+                singlePolygonFeature.set('title', title);
 
                 //pusho ogni singola feature (poligono) personalizzata in un array di features
                 polygonsFeatures.push(singlePolygonFeature);
@@ -443,6 +459,10 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             selectedPoints.clear();                                 //tolgo i punti selezionati
+            document.getElementById("inputDataTitolo").value = "";
+            document.getElementById("inputDataAllarme1").value = "";
+            document.getElementById("inputDataAllarme2").value = "";
+            document.getElementById("inputDataAllarme3").value = "";        
             loadGeofence();                                         //richiamo il caricamento del geofence per caricare anche questo nuovo
         })
         .catch(error => {
@@ -455,8 +475,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById("deleteGeofenceForm").addEventListener("submit", function(event) {
         event.preventDefault();                                                                  //evito la ricarica della pagina
         deleteGeofence(featureToDelete.get('id'));                                              //richiamo la funzione passando l'id del geofence associato
-        geofence_idLabel.textContent = "";                                                     //pulisco le label
-        geofence_nUsersLabel.textContent = "";                                                 //pulisco le label
+        geofence_idLabel.textContent = "-";                                                     //pulisco le label
+        geofence_nUsersLabel.textContent = "-";                                                 //pulisco le label
         featureToDelete = null;                                                               //riporto la feature da cancellare a null
         document.getElementById("deleteButton").setAttribute("disabled", "true");             //disabilito il pulsante per cancellare
     });
@@ -465,21 +485,27 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById("viewWalkingUserButton").addEventListener("click", function() {
         userVisualization = "WALKING";                                                          //imposto la visualizzazione richiesta
         updateUsersLocation();                                                                  //richiamo la funzione
-        document.getElementById("elbowLabel").textContent = "";
+        document.getElementById("viewAllUserButton").classList.remove("btn_select");
+        document.getElementById("viewCarUserButton").classList.remove("btn_select");
+        document.getElementById("viewWalkingUserButton").classList.add("btn_select");
     });
 
     //quando viene cliccato il pulsante per vedere gli utenti in macchina
     document.getElementById("viewCarUserButton").addEventListener("click", function() {
         userVisualization = "CAR";                                                              //imposto la visualizzazione richiesta
         updateUsersLocation();                                                                  //richiamo la funzione
-        document.getElementById("elbowLabel").textContent = "";
+        document.getElementById("viewAllUserButton").classList.remove("btn_select");
+        document.getElementById("viewWalkingUserButton").classList.remove("btn_select");
+        document.getElementById("viewCarUserButton").classList.add("btn_select");
     });
 
     //quando viene cliccato il pulsante per vedere tutti gli utenti
     document.getElementById("viewAllUserButton").addEventListener("click", function() {
         userVisualization = "ALL";                                                              //imposto la visualizzazione richiesta
         updateUsersLocation();                                                                  //richiamo la funzione
-        document.getElementById("elbowLabel").textContent = "";
+        document.getElementById("viewWalkingUserButton").classList.remove("btn_select");
+        document.getElementById("viewCarUserButton").classList.remove("btn_select");
+        document.getElementById("viewAllUserButton").classList.add("btn_select");
     });
 
 
@@ -521,7 +547,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         //se il cluster id è uguale a -1 = non è ancora stato associato un colore a quel cluster id
                         if(colorArray[cluster_id]==="-1"){
                             //associo un colore casuale a quel cluster
-                            fillColor = 'rgba('+Math.floor(Math.random() * 256)+','+Math.floor(Math.random() * 256)+','+Math.floor(Math.random() * 256)+', 0.8)'
+                            fillColor = 'rgba('+Math.floor(Math.random() * 256)+','+Math.floor(Math.random() * 256)+','+Math.floor(Math.random() * 256)+', 0.9)'
                             colorArray[cluster_id] = fillColor;
                         }
                         
@@ -547,12 +573,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         source: clusterSource
                     });
                 
-                    //tolgo la label del metodo elbow se presente
-                    document.getElementById("elbowLabel").textContent = "";
 
                     // Aggiungo il layer
                     map.addLayer(clusterLayer);
                     userVisualization = "CLUSTER";
+                    document.getElementById("viewWalkingUserButton").classList.remove("btn_select");
+                    document.getElementById("viewCarUserButton").classList.remove("btn_select");
+                    document.getElementById("viewAllUserButton").classList.remove("btn_select");
                 })
                 .catch(error => {
                     console.error("Errore:", error);
@@ -567,75 +594,60 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .then(response => response.json())
                 .then(data => {
-                    const jsonData = JSON.parse(data);
-
-                    //rimuovo i layer presenti
-                    map.removeLayer(allUserLayer);
-                    map.removeLayer(carUserLayer);
-                    map.removeLayer(walkingUserLayer);
-                    map.removeLayer(clusterLayer);
-                    
-                    //creo un array dei colori associati a ogni feature e lo inizializzo tutto a -1
-                    var colorArray= new Array(100).fill("-1");
-
-                    //definisco le feature associata al cluster
-                    var clusterFeatures = jsonData.map(item => {
-                        //associo le coordinate
-                        const coordinates = [item.longitudine, item.latitudine];
-                        
-                        //creo un punto associato alle coordinate
-                        const point = new ol.Feature({
-                            geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
-                        });
-
-                        //ottengo il cluster id
-                        var cluster_id = item.CLUSTER_ID;
-
-                        //se il cluster id è uguale a -1 = non è ancora stato associato un colore a quel cluster id
-                        if(colorArray[cluster_id]==="-1"){
-                            fillColor = 'rgba('+Math.floor(Math.random() * 256)+','+Math.floor(Math.random() * 256)+','+Math.floor(Math.random() * 256)+', 0.8)'
-                            colorArray[cluster_id] = fillColor;
-                        }
-
-                        //setto lo stile del punto associandogli il colore presente nell'array
-                        point.setStyle(new ol.style.Style({
-                            image: new ol.style.Circle({
-                                radius: 6,
-                                fill: new ol.style.Fill({
-                                    color: colorArray[cluster_id]
-                                })
-                            })
-                        }));
-                        return point;
-                    });
-
-                    //ottengo il numero di cluster restituiti verificando quante posizioni dell'array ho riempito
-                    var n_cluster = 0;
-                    while (colorArray[n_cluster]!="-1" && n_cluster<100){
-                        n_cluster+=1;
-                    }
-
-                    //setto la label dicendo quant'è il numero ottimale di cluster rilevati
-                    document.getElementById("elbowLabel").textContent = "Numero ottimale di cluster rilevati con metodo elbow: " + n_cluster;
-                    
-                    //source associata alle feature
-                    clusterSource = new ol.source.Vector({
-                        features: clusterFeatures
-                    });
-                    
-                    //layer associato ai cluster
-                    clusterLayer = new ol.layer.Vector({
-                        source: clusterSource
-                    });
-                
-                    // Aggiungo il layer
-                    map.addLayer(clusterLayer);
-                    userVisualization = "CLUSTER";
+                    inputData = document.getElementById("inputDatatoCluster");
+                    inputData.value = data.best_k.toString();
                 })
                 .catch(error => {
                     console.error("Errore:", error);
                 });
     });
 
+
+    //funzione che aggiorna la visualizzazione per le varie modalità
+    function updateMode(show, hidden1, hidden2){
+        document.getElementById(hidden1).classList.add("hidden");
+        document.getElementById(hidden2).classList.add("hidden");
+        document.getElementById(show).classList.remove("hidden");
+
+        document.getElementById(hidden1+"-mode").classList.remove("btn-outline-success");
+        document.getElementById(hidden1+"-mode").classList.add("btn-sm");
+        document.getElementById(hidden1+"-mode").classList.add("btn-outline-secondary");
+        document.getElementById(hidden2+"-mode").classList.remove("btn-outline-success");
+        document.getElementById(hidden2+"-mode").classList.add("btn-sm");
+        document.getElementById(hidden2+"-mode").classList.add("btn-outline-secondary");
+
+        document.getElementById(show+"-mode").classList.remove("btn-sm");
+        document.getElementById(show+"-mode").classList.remove("btn-outline-secondary");
+        document.getElementById(show+"-mode").classList.add("btn-outline-success");
+    }
+
+
+
+    document.getElementById("addgeofence-mode").addEventListener("click", function() {   
+        updateMode("addgeofence", "cluster", "delete");
+        addmode = 1;
+        deletemode=0;
+    });
+
+    document.getElementById("cluster-mode").addEventListener("click", function() {
+        updateMode("cluster", "addgeofence", "delete");
+        selectedPoints.clear();
+        addmode = 0;
+        deletemode = 0;
+    });
+
+
+    document.getElementById("delete-mode").addEventListener("click", function() {
+        updateMode("delete", "cluster", "addgeofence");
+        selectedPoints.clear();
+        addmode = 0;
+        deletemode=1;
+    });
+
+
+    
+
+
+    
     
 });

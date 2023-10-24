@@ -271,14 +271,15 @@ def add_geofence():
 
     #creo la query per inserire i valori nel database postgis
     query = text("""
-        INSERT INTO "emergency-schema"."geofence-information" (id, polygon)
-        VALUES (:id, :polygon)
+        INSERT INTO "emergency-schema"."geofence-information" (id, polygon, title)
+        VALUES (:id, :polygon, :title)
     """)
 
     # Parametri per la query
     parametri = {
         'id': id_notifica,
-        'polygon': polygon_string
+        'polygon': polygon_string,
+        'title' : titolo
     }
 
     
@@ -447,7 +448,7 @@ def get_geofence():
     try:
         # Eseguo una query per recuperare le informazioni sui geofence presenti nel db
         query = text("""
-           SELECT g.id, g.polygon, COUNT(u.username) as n_users_inside
+           SELECT g.id, g.polygon, g.title, COUNT(u.username) as n_users_inside
             FROM "emergency-schema"."geofence-information" as g
             LEFT JOIN "emergency-schema"."user-information" as u
             ON ST_Contains(g.polygon, u.posizione)
@@ -462,7 +463,8 @@ def get_geofence():
 
         id_polygons = [row[0] for row in query_result]              #creo una lista con gli id dei poligoni
         polygons = [row[1] for row in query_result]                 #creo una lista con i poligoni
-        n_users = [row[2] for row in query_result]                  #creo una lista con il numero degli utenti presenti nei vari poligoni
+        titles = [row[2] for row in query_result]
+        n_users = [row[3] for row in query_result]                  #creo una lista con il numero degli utenti presenti nei vari poligoni
 
         #definisco una lista per adattare i dati ottenuti al formato richiesto dal frontend
         polygons_frontend_format = []
@@ -507,6 +509,7 @@ def get_geofence():
                 #prendo anche gli altri valori alla quale sono interessato
                 tmp_geojson_with_id = {
                         "id": id_polygons[i],                           #id del poligono
+                        "title" : titles[i],
                         "n_users" : n_users[i],                         #numero utenti all'interno del poligono
                         "points": tmp                                   #metto tmp, il punto ottenuto prima
                     }
@@ -578,7 +581,7 @@ def get_cluster():
 
     return jsonify(json_data), 200
 
-
+'''
 #restituisce i cluster calcolati con il metodo elbow
 @app.route('/get_cluster_elbow')
 def get_cluster_elbow():
@@ -641,7 +644,56 @@ def get_cluster_elbow():
     json_data = df.to_json(orient='records')
 
     return jsonify(json_data), 200
+'''
 
+#restituisce i cluster calcolati con il metodo elbow
+@app.route('/get_cluster_elbow')
+def get_cluster_elbow():
+    #creo la query per prendere le posizioni degli utenti
+    query = text("""
+           SELECT ST_X(posizione) AS longitudine, ST_Y(posizione) AS latitudine 
+            FROM "emergency-schema"."user-information";
+        """)
+   
+    result = db.session.execute(query)
+
+    query_result = result.fetchall()
+
+    #definisco un csv_buffer (per non creare un csv localmente)
+    csv_buffer = StringIO()
+
+    #definisco un writer per scrivere sul mio csv_buffer
+    writer = csv.writer(csv_buffer)
+    
+    # Scrivo le colonne del mio csv
+    writer.writerow(['longitudine', 'latitudine'])
+    
+    # Scrivo le righe restituite dalla query nel csv
+    for row in query_result:
+        writer.writerow(row)
+
+    #riporto il punto di lettura del buffer all'inizio
+    csv_buffer.seek(0)
+
+    # Carico il file CSV come DataFrame
+    df = pd.read_csv(csv_buffer)
+
+    # Seleziono le colonne di latitudine e longitudine per il clustering
+    dati = df[['longitudine', 'latitudine']]
+    
+    #inizializzo un modello kmeans
+    model = KMeans(n_init=10)
+
+    #inizializzo un visualizer con KElbowVisualizer, a cui passo il mio modello e il range k che vogliamo esplorare
+    visualizer = KElbowVisualizer(model, k=(1, 11), visualize=False)
+
+    # Adatto il modello ai dati
+    visualizer.fit(dati)  
+
+    #ottengo il best_k ottenuto con il metodo elbow
+    best_k = visualizer.elbow_value_
+
+    return jsonify({"best_k": int(best_k)}), 200
 
 #aggiunge la posizione del server, richiamato da un mio frontend per comodità nel fissaggio del server
 @app.route('/add_server', methods=['POST'])
