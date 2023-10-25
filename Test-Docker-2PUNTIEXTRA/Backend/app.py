@@ -107,14 +107,15 @@ def upload_location():
         #prendo il riferimento di firebase del nodo dell'utente coinvolto
         user_state_ref = firebase_admin.db.reference('/user/' + username + "/information")
 
-        
+        print("here1")
         #creo la query per calcolare se l'utente si trova dentro il geofence
         query = text("""
             SELECT ui.username, gi.id as geofence_id
             FROM "emergency-schema"."user-information" ui
             JOIN "emergency-schema"."geofence-information" gi 
             ON ST_Within(ui.posizione::geometry, gi.polygon::geometry)
-            WHERE ui.username = :username;
+            WHERE ui.username = :username
+            ORDER BY gi.timestamp DESC;
         """)
 
         # Parametri per la query
@@ -138,9 +139,11 @@ def upload_location():
         if row is not None:
             new_value = {
                 'stato': 'DENTRO IL GEOFENCE',              #aggiorno su firebase la condizione dell'utente
-                'id_geofence': row[1]                       #inserisco su firebase l'id del geofence alla quale appartiene
+                'id_geofence': str(row[1])                       #inserisco su firebase l'id del geofence alla quale appartiene
             }
             user_state_ref.set(new_value)                   #inserisco i valori su firebase
+            print("DENTRO")
+            print(row[1])
             return "<h1>DENTRO IL GEOFENCE</h1>"
 
         
@@ -152,7 +155,8 @@ def upload_location():
             JOIN "emergency-schema"."geofence-information" gi 
             ON ST_Distance(ui.posizione::geography, gi.polygon::geography) <= 1000 
             AND NOT ST_Within(ui.posizione::geometry, gi.polygon::geometry)
-            WHERE ui.username = :username;
+            WHERE ui.username = :username
+            ORDER BY gi.timestamp DESC;
         """)
 
         # Parametri per la query
@@ -160,7 +164,7 @@ def upload_location():
             'username': username
         }
         
-        
+        print("here2")
         try:
             result = db.session.execute(query, parametri)  # Eseguo la query con i parametri
             # Estraggo il primo risultato della query
@@ -174,10 +178,14 @@ def upload_location():
         #se la query ha restituito qualcosa
         if row is not None:
             new_value = {
-                'stato': 'A 1 KM DAL GEOFENCE',                 #aggiorno su firebase la condizione dell'utente
-                'id_geofence': row[1]                           #inserisco su firebase l'id del geofence alla quale appartiene
+                'id_geofence': str(row[1]),                          #inserisco su firebase l'id del geofence alla quale appartiene
+                'stato': 'A 1 KM DAL GEOFENCE'                 #aggiorno su firebase la condizione dell'utente
+                                           
             }
             user_state_ref.set(new_value)                       #inserisco i valori su firebase
+            print("1KM")
+            print(username)
+            print(row[1])
             return "<h1>A 1 km dal geofence</h1>"
 
 
@@ -190,7 +198,8 @@ def upload_location():
             ON ST_Distance(ui.posizione::geography, gi.polygon::geography) > 1000  -- Maggiore di 1 km
             AND ST_Distance(ui.posizione::geography, gi.polygon::geography) <= 2000 -- Inferiore o uguale a 2 km
             AND NOT ST_Within(ui.posizione::geometry, gi.polygon::geometry)
-            WHERE ui.username = :username;
+            WHERE ui.username = :username
+            ORDER BY gi.timestamp DESC;
         """)
 
         # Parametri per la query
@@ -215,6 +224,8 @@ def upload_location():
                 'id_geofence': row[1]                               #inserisco su firebase l'id del geofence alla quale appartiene
             }
             user_state_ref.set(new_value)                            #inserisco i valori su firebase
+            print("1-2KM")
+            print(row[1])
             return "<h1>1-2 KM DAL GEOFENCE</h1>"
 
         #se l'utente non è né dentro il geofence, né nel raggio di 1km, né tra 1-2km
