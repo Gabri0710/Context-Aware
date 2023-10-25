@@ -17,14 +17,14 @@ document.addEventListener('DOMContentLoaded', function() {
     var serverLayer;                                                        //layer dei server
 
     var addmode = 1;                                                        //flag per capire se stiamo cercando di aggiungere un geofence
-    var deletemode = 0;                                                     //flag per capire se stiamo cliccando su un geofence già esistente (per eliminarlo)
-    var isFeature = 0;
+    var deletemode = 0;                                                     //flag per capire se stiamo cercando di eliminare un geofence
+    var isFeature = 0;                                                      //flag per capire se abbiamo il mouse su un geofence o no
     var featureToDelete = null;                                             //feature associata al geofence da eliminare
     var userVisualization = "ALL";                                          //variabile che memorizza la tipologia di visualizzazione che vogliamo (piedi, macchina, cluster)
 
-    var geofence_idLabel = document.getElementById('id_geofence_label');    //riferimento alla label del geofence selezionato
-    var geofence_nUsersLabel = document.getElementById('n_utenti_label');   //riferimento alla label che esprime il numero di utenti del geofence selezionato
-    var geofence_titleLabel = document.getElementById('titolo_geofence_label');
+    var geofence_idLabel = document.getElementById('id_geofence_label');            //riferimento alla label del geofence selezionato
+    var geofence_nUsersLabel = document.getElementById('n_utenti_label');           //riferimento alla label che esprime il numero di utenti del geofence selezionato
+    var geofence_titleLabel = document.getElementById('titolo_geofence_label');     //riferimento alla label del titolo del geofence selezionato
 
     //oggetto Feature dove memorizzo i punti scelti per la creazione del geofence
     var selectedPoints = new ol.Collection();
@@ -80,13 +80,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         //se esiste la feature e ha un id (quindi è una feature associata a un geofence)
         if (feature && feature.get('id')){
-            //deletemode = 1;                                                             //abilito il flag per la cancellazione
-            isFeature = 1;
+            isFeature = 1;                                                              //abilito il flag per indicare che siamo su un geofence
             featureToDelete = feature;                                                  //imposto la feature da eliminare con quella selezionata
         }
         else{
-            isFeature = 0;
-            //deletemode = 0;                                                             //disabilito il flag per la cancellazione
+            isFeature = 0;                                                              //disabilito il flag per indicare che NON siamo su un geofence                                                    
         }
         
     });
@@ -98,23 +96,23 @@ document.addEventListener('DOMContentLoaded', function() {
             if(isFeature==1){
                 geofence_idLabel.textContent = featureToDelete.get('id');                                    //aggiorno la label di visualizzazione
                 geofence_nUsersLabel.textContent = featureToDelete.get('n_users').toString();                //aggiorno la label di visualizzazione
-                geofence_titleLabel.textContent = featureToDelete.get('title');
+                geofence_titleLabel.textContent = featureToDelete.get('title');                             //aggiorno la label di visualizzazione
                 document.getElementById("deleteButton").removeAttribute("disabled");                        //attivo il button per cancellare il geofence
-                document.getElementById("deleteButton").classList.add("btn-primary");
-                document.getElementById("deleteButton").classList.remove("btn-outline-secondary");
+                document.getElementById("deleteButton").classList.add("btn-primary");                       //indico il pulsante come quello selezionato
+                document.getElementById("deleteButton").classList.remove("btn-outline-secondary");           //indico il pulsante come quello selezionato
                 
-                updateMode("delete", "cluster", "addgeofence");
-                selectedPoints.clear();
-                addmode = 0;
+                updateMode("delete", "cluster", "addgeofence");                                             //aggiorno visualizzazione
+                selectedPoints.clear();                                                                     //rimuovo i punti selezionati
+                addmode = 0;                                                                                //imposto il flag per l'aggiunta di geofence a 0
             }
             else{
                 geofence_idLabel.textContent = "-";                                                      //aggiorno la label di visualizzazione      
                 geofence_nUsersLabel.textContent = "-";                                                  //aggiorno la label di visualizzazione
-                geofence_titleLabel.textContent = "-";
+                geofence_titleLabel.textContent = "-";                                                  //aggiorno la label di visualizzazione
                 featureToDelete = null;                                                                 //porto a null la label da eliminare
                 document.getElementById("deleteButton").setAttribute("disabled", "true");               //disabilito il button per la visualizzazione
-                document.getElementById("deleteButton").classList.add("btn-outline-secondary");
-                document.getElementById("deleteButton").classList.remove("btn-primary");
+                document.getElementById("deleteButton").classList.add("btn-outline-secondary");         //indico il pulsante come quello selezionato
+                document.getElementById("deleteButton").classList.remove("btn-primary");                //indico il pulsante come quello selezionato
             }
             
         }
@@ -136,9 +134,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         
     });
-
-
-    
 
 
     //funzione di aggiornamento della posizione degli utenti
@@ -359,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function() {
             data.forEach(function(obj) {                                               //per ogni geofence che arriva
                 var id = obj.id;                                                       //prendo l'id del geofence
                 var n_users = obj.n_users;                                             //prendo il numero di utenti al suo interno
-                var title = obj.title;
+                var title = obj.title;                                                 //prendo il titolo del geofence
                 var points = obj.points;                                               //prendo i punti che lo compongono
                 var coordinates = points.map(function(record) {                        //per ogni coordinata del punto
                     return ol.proj.fromLonLat(record.geometry.coordinates);             //la converto in formato richiesto dal frontend e le memorizzo
@@ -385,7 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 singlePolygonFeature.set('id', id);                                                     //associo l'id alla feature
                 singlePolygonFeature.set('n_users', n_users);                                           //associo il numeto utenti alla feature
-                singlePolygonFeature.set('title', title);
+                singlePolygonFeature.set('title', title);                                               //associo il titolo alla feature
 
                 //pusho ogni singola feature (poligono) personalizzata in un array di features
                 polygonsFeatures.push(singlePolygonFeature);
@@ -450,24 +445,44 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('coordinates[]', coordinates);
             
         });
+        
+        var inputDataTitolo = document.getElementById("inputDataTitolo");                           //prendo riferimento al titolo
+        var inputDataAllarme1 = document.getElementById("inputDataAllarme1");                       //prendo riferimento all'allarme 1
+        var inputDataAllarme2 = document.getElementById("inputDataAllarme2");                       //prendo riferimento all'allarme 2
+        var inputDataAllarme3 = document.getElementById("inputDataAllarme3");                       //prendo riferimento all'allarme 3
+        var labelError = document.getElementById("labelError1");                                    //prendo riferimento alla label di errore
 
-        // chiamo il backend
-        fetch("http://localhost:5001/add_geofence", {
-            method: "POST",
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            selectedPoints.clear();                                 //tolgo i punti selezionati
-            document.getElementById("inputDataTitolo").value = "";
-            document.getElementById("inputDataAllarme1").value = "";
-            document.getElementById("inputDataAllarme2").value = "";
-            document.getElementById("inputDataAllarme3").value = "";        
-            loadGeofence();                                         //richiamo il caricamento del geofence per caricare anche questo nuovo
-        })
-        .catch(error => {
-            console.error("Errore:", error);
-        });
+        //controllo che i vari campi vengano riempiti correttamente
+        if(inputDataTitolo.value===""){
+            labelError.textContent = "Errore, inserisci titolo dell'allarme!";
+        }
+        else if(inputDataAllarme1.value==="" || inputDataAllarme2.value===""|| inputDataAllarme3.value===""){
+            labelError.textContent = "Errore, inserisci l'allarme per tutte le zone!";
+        }
+        else if(selectedPoints.getLength()<3){
+            labelError.textContent = "Errore, seleziona almeno 3 punti per creare l'allarme!";
+        }
+        else{
+            // chiamo il backend
+            fetch("http://localhost:5001/add_geofence", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                selectedPoints.clear();                                 //tolgo i punti selezionati
+                inputDataTitolo.value = "";                             //resetto le label
+                inputDataAllarme1.value = "";                           //resetto le label 
+                inputDataAllarme2.value = "";                           //resetto le label
+                inputDataAllarme3.value = "";                           //resetto le label    
+                labelError.textContent = "";                            //resetto le label
+                loadGeofence();                                         //richiamo il caricamento del geofence per caricare anche questo nuovo
+            })
+            .catch(error => {
+                console.error("Errore:", error);
+            });
+        }
+        
 
     });
 
@@ -477,6 +492,7 @@ document.addEventListener('DOMContentLoaded', function() {
         deleteGeofence(featureToDelete.get('id'));                                              //richiamo la funzione passando l'id del geofence associato
         geofence_idLabel.textContent = "-";                                                     //pulisco le label
         geofence_nUsersLabel.textContent = "-";                                                 //pulisco le label
+        geofence_titleLabel.textContent = "-";                                                  //pulisco le label
         featureToDelete = null;                                                               //riporto la feature da cancellare a null
         document.getElementById("deleteButton").setAttribute("disabled", "true");             //disabilito il pulsante per cancellare
     });
@@ -580,6 +596,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById("viewWalkingUserButton").classList.remove("btn_select");
                     document.getElementById("viewCarUserButton").classList.remove("btn_select");
                     document.getElementById("viewAllUserButton").classList.remove("btn_select");
+                    document.getElementById("inputDatatoCluster").value="";
                 })
                 .catch(error => {
                     console.error("Errore:", error);
@@ -587,15 +604,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 
-    //quando viene cliccato il pulsante per richiedere il cluster col metodo elbow
+    //quando viene cliccato il pulsante per richiedere il calcolo del best_k col metodo elbow
     document.getElementById("viewElbowCluster").addEventListener("click", function() {
         fetch("http://localhost:5001/get_cluster_elbow", {
                 method: "GET"
                 })
                 .then(response => response.json())
                 .then(data => {
-                    inputData = document.getElementById("inputDatatoCluster");
-                    inputData.value = data.best_k.toString();
+                    inputData = document.getElementById("inputDatatoCluster");              //prendo il riferimento alla textbox dove inserire il numero di cluster
+                    inputData.value = data.best_k.toString();                               //aggiorno la label inserendo il best_k
                 })
                 .catch(error => {
                     console.error("Errore:", error);
@@ -603,7 +620,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 
-    //funzione che aggiorna la visualizzazione per le varie modalità
+    //funzione che aggiorna la visualizzazione per le varie modalità del menù a destra
     function updateMode(show, hidden1, hidden2){
         document.getElementById(hidden1).classList.add("hidden");
         document.getElementById(hidden2).classList.add("hidden");
@@ -644,10 +661,4 @@ document.addEventListener('DOMContentLoaded', function() {
         deletemode=1;
     });
 
-
-    
-
-
-    
-    
 });

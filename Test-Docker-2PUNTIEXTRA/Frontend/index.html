@@ -15,28 +15,28 @@
       }
 
       .col-8 {
-      min-height: 80vh; /* Altezza minima del 100% dell'altezza del viewport */
+      min-height: 80vh;
       }
       .col-4 {
         margin-left: 10px;
         width: 31%;
-        min-height: 80vh; /* Altezza minima del 100% dell'altezza del viewport */
+        min-height: 80vh; 
       }
 
       .bordo-verde {
-      border: 3px solid green; /* Bordo nero con uno spessore di 1 pixel */
+      border: 3px solid green; 
       border-radius: 15px;
       }
 
       .form-group {
        
         margin-left: 10px;
-        margin-bottom: 20px; /* Aggiunge spazio sotto il gruppo di input */
+        margin-bottom: 20px; 
       }
 
       .input-wrapper {
-        width: 100%; /* Imposta la larghezza al 100% per riempire il contenitore padre */
-        max-width: 300px; /* Imposta la larghezza massima, se desiderato */
+        width: 100%; 
+        max-width: 300px; 
         margin-left: 10px;
         margin-bottom: 5px;
       }
@@ -46,10 +46,10 @@
       }
 
       h1 {
-        font-size: 36px; /* Dimensione del carattere */
-        font-weight: bold; /* Grassetto */
-        color: #110303; /* Colore del testo */
-        margin-bottom: 20px; /* Margine inferiore per separare dal contenuto successivo */
+        font-size: 36px; 
+        font-weight: bold; 
+        color: #110303; 
+        margin-bottom: 20px; 
       }
 
       .btn_select{
@@ -129,6 +129,8 @@
                 </div>
                 <label class="label">- Seleziona i punti dell'allarme sulla mappa.</label><p></p>
                 <button class="btn btn-primary" type="submit" style="display: flex; justify-content: center;">Inserisci allarme</button>
+                <br>
+                <label id="labelError1" style="color: #ff0000;"></label>
               </div>
             </form>
           </div>
@@ -145,7 +147,7 @@
               <form id="ClusterForm">
                 <label for="inputDatatoCluster" class="label">Inserisci numero di Cluster: </label>
                 <div class="input-wrapper">
-                  <input type="text" id="inputDatatoCluster" name="num_cluster" autocomplete="off" pattern="[0-9]*">
+                  <input type="text" id="inputDatatoCluster" name="num_cluster" autocomplete="off" pattern="[0-9]+" title="Inserisci un valore numerico">
                 </div>
                 <button class="btn btn-primary" type="submit" style="margin-left: 10px; margin-bottom: 5px;">Visualizza Cluster</button>    
               </form>
