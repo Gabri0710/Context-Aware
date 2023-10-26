@@ -9,7 +9,6 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 
-import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -18,14 +17,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.speech.tts.TextToSpeech;
-import android.speech.tts.TextToSpeechService;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -64,7 +60,6 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -76,17 +71,19 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int REQUEST_ENABLE_GPS = 123;
+    //    private static final int REQUEST_ENABLE_GPS = 123;
     private static final int LOCATION_SETTINGS_REQUEST_CODE = 124;
 
-    // Launcher per la richiesta di autorizzazione.
+    // Launcher per la richieste di autorizzazione.
     // Nelle nuove versioni di android bisogna richiederla anche da codice e non solo nel manifest
     private static ActivityResultLauncher<String[]> requestPermissionsLauncher;
-//    private ActivityResultLauncher<String> locationPermissionLauncher;
-//    private ActivityResultLauncher<String> requestNotificationPermissionLauncher;
+
 
     // definisco client riconoscimento attività
     private ActivityRecognitionClient activityRecognitionClient;
+
+    // definisco PendingIntent per ricevere i risultati del riconoscimento dell'attività
+    private PendingIntent pendingIntent;
 
     // definisco variabile che memorizzerà l'attività riconosciuta
     private int recognizedActivity;
@@ -95,55 +92,65 @@ public class MainActivity extends AppCompatActivity {
     private static final int WALKING = 1;
     private static final int IN_VEHICLE = 2;
 
-    // definisco PendingIntent per ricevere i risultati del riconoscimento
-    private PendingIntent pendingIntent;
 
     // definisco oggetti che mi servono per l'ottenimento della posizione
     private FusedLocationProviderClient fusedLocationClient;
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
 
-    // definisco manager per la gestione di attivare il gps se è spento
+    //posizione del dispositivo
+    private Location location;
+
+    // definisco manager per la gestione di attivazione del gps se spento
     private LocationManagerImpl locationManagerImpl;
 
-    // definisco nuovo canale di notifiche, per gli alert che arriveranno dal backend
+
+    // definisco canale di notifiche
     private NotificationChannel alertChannel;
-    private TextToSpeech textToSpeech;
+
     // definisco un broadcast receiver personalizzato per ricevere gli intent degli alert
-    // dai questi intent il broadcast receiver gestirà la creazione e l'invio di notifiche
+    // da questi intent il broadcast receiver gestirà la creazione e l'invio di notifiche
     private AlertReceiver alertReceiver;
-    //    private String alertText="";
-    private Location location;
+
+    //definisco oggetti per la mappa
     private MapView mapView;
     private MapController mapController;
     private ScaleGestureDetector scaleGestureDetector;
     private ItemizedIconOverlay<OverlayItem> itemizedIconOverlay;
     private MyLocationNewOverlay myLocationOverlay;
 
-    // intero che mi serve nell'aggiornamento della mappa per capire se centrarla o no
-    private int center;
+    // flag per centrare la mappa solo all'avvio dell'app (non se l'utente sposta la mappa)
+    private int centerMap;
 
     // interfaccia per invio dati a backend
     private SendUserDataService sendUserDataService;
 
+    //oggetto che contiene i dati dell'utente (posizione + attività riconosciuta)
     private UserData userData;
 
+
+    //Definisco database firebase e riferimenti a vari nodi del mio db firebase
     FirebaseDatabase database;
     DatabaseReference myRef4geofence;
-    DatabaseReference myRef4user_state;
-    DatabaseReference myRef4userchild_state;
+    DatabaseReference myRef4user;
+
+    //Definisco oggetti per autenticazione
     private FirebaseAuth mAuth;
     private Button authBtn;
-    private TextView usernameTextView;
+
+    //username utente loggato
     private String username = "";
 
-    //Hashmap che contiene associazione chiave valore dove chiave=id_geofence valore=punti del geofence
+    //textview dove indico l'username dell'utente loggato
+    private TextView usernameTextView;
+
+    //Hashmap che contiene associazione chiave valore dove chiave=id_geofence - valore=oggetto CustomGeofence
     Map<String, CustomGeofence> geofence = new HashMap<String, CustomGeofence>();
 
-
+    //Oggetti dove memorizzo il risultato di un'operazione.
+    // Successivamente creerò una sequenzialità verificando che queste operazioni siano state eseguite o meno
     CompletableFuture<Void> firstOperationCompleted = new CompletableFuture<>();
-
-
+    CompletableFuture<Void> secondOperationCompleted = new CompletableFuture<>();
 
     // definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
     private final BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
@@ -157,13 +164,12 @@ public class MainActivity extends AppCompatActivity {
                     recognizedActivity = WALKING;
                 }
 
-                //TODO: if da eliminare successivamente. Utile adesso solo per test.
-                //Successivamente la variabile recognizedActivity ci servirà solo quando dovremo inviare l'attività rilevata al backend
+                // Toast con attività riconosciuta (scopo didattico)
                 if (recognizedActivity == 1) {
                     Toast.makeText(MainActivity.this, "walking", Toast.LENGTH_SHORT).show();
                     Log.d("Attività: ", "a piedi");
                 } else {
-                    Toast.makeText(MainActivity.this, "in macchina", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "car", Toast.LENGTH_SHORT).show();
                     Log.d("Attività: ", "in macchina");
                 }
 
@@ -171,215 +177,234 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    //url del localhost da emulatore. Se da telefono vero sostituire con 127.0.0.1:5001
+    String BASE_URL = "http://10.0.2.2:5001";
+    //String BASE_URL = "http://192.168.1.189:5001";
+
     public MainActivity() {
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
-
-//        FirebaseUser currentUser = mAuth.getCurrentUser();
-//        this.username = currentUser.getUid();
-
-    }
-
-    // Update authBtn's text and onClickListener
+    /**
+     * Metodo che aggiorna la textview con l'username dell'utente loggato.
+     * In caso di logout reindirizza all'authActivity
+     * */
     private void updateAuthBtn(FirebaseUser currentUser) {
 
-        if (currentUser != null) { // if user's already logged
-            authBtn.setOnClickListener(null);
-            this.username = currentUser.getUid();
-            // modifica a runtime della textView per visualizzare l'email
-            this.usernameTextView.setText(currentUser.getEmail());
-            authBtn.setOnClickListener(view -> { // if user clicks logout btn
-                FirebaseAuth.getInstance().signOut();
-                Toast.makeText(getApplicationContext(), "REGISTRATI O FAI IL LOGIN PER USARE L'APP", Toast.LENGTH_SHORT).show();
-                goToAuthActivity();
-            });
-        } else { // if user is not already logged
-            Toast.makeText(getApplicationContext(), "REGISTRATI O FAI IL LOGIN PER USARE L'APP", Toast.LENGTH_SHORT).show();
+        authBtn.setOnClickListener(null);
+        this.username = currentUser.getUid();
+        this.usernameTextView.setText(currentUser.getEmail());
+        authBtn.setOnClickListener(view -> {            // se l'utente clicca il pulsante logout
+            FirebaseAuth.getInstance().signOut();
             goToAuthActivity();
-
-        }
+        });
 
     }
 
+    //metodo che reindirizza all'auth activity
     private void goToAuthActivity(){
         startActivity(new Intent(this, AuthActivity.class));
     }
 
 
-    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //prendo vari riferimenti
         usernameTextView = findViewById(R.id.usernameTextView);
         authBtn = findViewById(R.id.authBtn);
-
         mAuth = FirebaseAuth.getInstance();
 
+        //ottengo l'utente con la quale ho loggato e lo assegno alla mia variabile privata
         FirebaseUser currentUser = mAuth.getCurrentUser();
-
         updateAuthBtn(currentUser);
+    }
 
 
+    @Override
+    protected void onStart() {
+        super.onStart();
 
+        //inizializzo canale notifiche
         initAlertNotificationChannel();
 
+        //inizializzo launcher per richiedere permessi
         initRequestPermissionsLauncher();
 
+        //richiamo il dialog se ci sono permessi da concedere
         checkAllPermissions();
 
+        //inizializzo db firebase
         database = FirebaseDatabase.getInstance();
+
+        //inizializzo riferimento a nodo notifiche, dove vengono aggiunti i geofence
         myRef4geofence = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/notifiche");
-        myRef4user_state = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/user/"+username);
-        myRef4userchild_state = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/user/"+username+"/information");
 
-        Log.d("Firebase Reference", "Percorso della referenza: " + myRef4user_state.toString());
+        //inizializzo riferimento a nodo utente, mi permette di notare cambiamenti all'intero nodo
+        myRef4user = database.getReferenceFromUrl("https://geo-fencing-based-emergency-default-rtdb.europe-west1.firebasedatabase.app/user/"+username);
 
-        myRef4geofence.addChildEventListener(new ChildEventListener() {
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
-                // Questo metodo viene chiamato quando viene aggiunto un nuovo figlio al nodo "notifiche"
-                // Puoi gestire qui la notifica o l'azione da intraprendere quando viene aggiunto un nuovo valore.
+        // inizializzo locationManagerImpl e verifico se il GPS è attualmente disattivato
+        locationManagerImpl = new LocationManagerImpl(this);
+        locationManagerImpl.checkAndRequestLocationUpdates();
 
-            }
+        // Inizializzo activityRecognition e pendingIntent associato ad essa
+        activityRecognitionClient = ActivityRecognition.getClient(this);
+        Intent intent = new Intent(this, ActivityRecognitionService.class);
+        pendingIntent = PendingIntent.getService(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_MUTABLE
+        );
 
-            @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
-                //INSERITO QUI PERCHE PRIMA VIENE INSERITO L'IDENTIFICATIVO E POI VIENE AGGIORNATO CON
-                //TESTO, LATITUDINE E LONGITUDINE. DA GESTIRE QUI SE NO VENGONO VISTI COME null
+        // Inizializzo il FusedLocationProviderClient (per ottenere la posizione del dispositivo)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-                String identificativo = dataSnapshot.getKey();
-                String titolo = dataSnapshot.child("titolo").getValue(String.class);
-                String allarme1 = dataSnapshot.child("allarme1").getValue(String.class);
-                String allarme2 = dataSnapshot.child("allarme2").getValue(String.class);
-                String allarme3 = dataSnapshot.child("allarme3").getValue(String.class);
-//                alertText = dataSnapshot.child("testo").getValue(String.class);
+        // Configurazione delle richieste di posizione
+        locationRequest = new LocationRequest()
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setInterval(15000); // Intervallo di aggiornamento della posizione in millisecondi
 
-                //classe di utilità fornita da Firebase SDK per Java per aiutare nella deserializzazione dei dati da Firebase Realtime Database.
-                //È utilizzato quando si desidera deserializzare dati generici, come liste ecc, perché firebase non riconosce automaticamente il tipo di dati
-                //quindi, lo specifichiamo e lo passiamo successivamente a getValue(). In particolare, specifichiamo che stiamo ricevendo una lista di liste di double
-                GenericTypeIndicator<ArrayList<ArrayList<Double>>> t = new GenericTypeIndicator<ArrayList<ArrayList<Double>>>() {};
+        Toast.makeText(getApplicationContext(), "START", Toast.LENGTH_SHORT).show();
 
-                //array di coordinate. Per ogni punto, in posizione i latitudine, i+1 longitudine
-                ArrayList<ArrayList<Double>> coordinateList = dataSnapshot.child("coordinate").getValue(t);
+        //inizializzo di default l'attività iniziale come IN_VEHICLE (Scopo didattico)
+        recognizedActivity = IN_VEHICLE;
 
-                drawGeofence(identificativo, titolo, allarme1, allarme2, allarme3, coordinateList);
-                Log.d("ORDINE","5");
-            }
+        // Inizializzo l'intentFilter per i risultati dell'Activity Recognition
+        IntentFilter intentFilter = new IntentFilter("ACTION_ACTIVITY_RECOGNITION_RESULT");
 
-            @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
-                // Questo metodo viene chiamato quando un figlio viene rimosso dal nodo "notifiche"
-                String identificativo = dataSnapshot.getKey();
-                deleteGeofence(identificativo);
-            }
+        // associo il broadcast receiver al filtro per ricevere i risultati della misurazione
+        registerReceiver(activityRecognitionReceiver, intentFilter);
 
-            @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String previousChildName) {
-                // Questo metodo viene chiamato quando un figlio nel nodo "notifiche" viene spostato
-            }
+        // Richiedo le attività rilevate
+        activityRecognitionClient.requestActivityUpdates(2000, pendingIntent);
 
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                // Gestisci eventuali errore
-                Log.d("ALLARME", "ERRORE: " + databaseError.getMessage());
-            }
-        });
+        //inizializzo l'intentFilter per la ricezione delle notifiche di allerta
+        IntentFilter alertIntentFilter = new IntentFilter("ACTION_NEW_ALERT_NOTIFICATION");
+        // associo il broadcast receiver al filtro per la ricezione delle notifiche
+        registerReceiver(alertReceiver, alertIntentFilter);
 
-        //IMPORTANTE!! TODO: VERIFICARE SE IL FUNZIONAMENTO VA BENE, PRIMA C'ERA addListenerForSingleValueEvent
-        myRef4geofence.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                Log.d("ordine","3");
-                // Il metodo onDataChange verrà chiamato quando i dati nel nodo "notifiche" cambiano
-                // oppure quando il listener viene aggiunto per la prima volta e i dati esistono già nel nodo.
+        // Inizializza la configurazione di OpenStreetMap
+        Configuration.getInstance().load(getApplicationContext(), getSharedPreferences("OpenStreetMap", MODE_PRIVATE));
 
-                // Verifica se ci sono dati nel nodo "notifiche"
-                if (dataSnapshot.exists()) {
-                    // Itera attraverso tutti i figli nel nodo "notifiche"
-                    for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
-                        // Ottieni le informazioni da ciascun figlio
-                        String identificativo = childSnapshot.getKey();
-                        String titolo = childSnapshot.child("titolo").getValue(String.class);
-                        String allarme1 = dataSnapshot.child("allarme1").getValue(String.class);
-                        String allarme2 = dataSnapshot.child("allarme2").getValue(String.class);
-                        String allarme3 = dataSnapshot.child("allarme3").getValue(String.class);
-
-//                        alertText = childSnapshot.child("testo").getValue(String.class);
-//
-
-                        Log.d("ordine","2");
-                        Log.d("TESTO", titolo);
-                        //classe di utilità fornita da Firebase SDK per Java per aiutare nella deserializzazione dei dati da Firebase Realtime Database.
-                        //È utilizzato quando si desidera deserializzare dati generici, come liste ecc, perché firebase non riconosce automaticamente il tipo di dati
-                        //quindi, lo specifichiamo e lo passiamo successivamente a getValue(). In particolare, specifichiamo che stiamo ricevendo una lista di liste di double
-                        GenericTypeIndicator<ArrayList<ArrayList<Double>>> t = new GenericTypeIndicator<ArrayList<ArrayList<Double>>>() {};
-
-                        //array di coordinate. Per ogni punto, in posizione i latitudine, i+1 longitudine
-                        ArrayList<ArrayList<Double>> coordinateList = childSnapshot.child("coordinate").getValue(t);
-
-                        Log.d("TROVATO GEOFENCE", "identificativo: " + identificativo + " " + coordinateList);
-                        drawGeofence(identificativo, titolo, allarme1, allarme2, allarme3, coordinateList);
-                        firstOperationCompleted.complete(null);
-                    }
-                } else {
-                    // Il nodo "notifiche" è vuoto
-                    System.out.println("Nessuna notifica presente nel nodo 'notifiche'.");
-                    //firstOperationCompleted.complete(null);
-                }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                // Gestisci eventuali errori di lettura dal database
-                System.out.println("Errore durante la lettura dei dati: " + databaseError.getMessage());
-            }
-        });
+        // inizializzazione mapView
+        initMapView();
 
 
-        CompletableFuture<Void> secondOperationCompleted = firstOperationCompleted.thenRun(() -> {
-            myRef4userchild_state.addListenerForSingleValueEvent(new ValueEventListener() {
+        // Inizializza Retrofit (per effettuare richieste HTTP)
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        // Crea un'istanza che è pronta per essere utilizzata per effettuare chiamate di rete
+        sendUserDataService = retrofit.create(SendUserDataService.class);
+
+        // inizializzo userData
+        userData = new UserData();
+
+
+        //richiedo aggiornamenti posizione. Prima operazione serializzata (prima cosa da fare)
+        requestLocationUpdates();
+
+
+        //Viene richiamato se viene aggiunto un geofence quando l'app non è in esecuzione.
+        // Secondo metodo serializzato (viene eseguito dopo aver aggiornato la posizione quando viene aperta l'app)
+        firstOperationCompleted.thenRun(() ->{
+            myRef4geofence.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
-                    // Questo metodo viene chiamato quando i dati nella reference dell'utente cambiano
-                    String state = dataSnapshot.child("stato").getValue(String.class);
-                    Log.d("ordine", "1");
+                    // Verifico se ci sono dati nel nodo "notifiche"
+                    if (dataSnapshot.exists()) {
+                        for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {                 //per ciascun figlio
+
+                            // Ottengo le informazioni
+                            String identificativo = childSnapshot.getKey();
+                            String titolo = childSnapshot.child("titolo").getValue(String.class);
+                            String allarme1 = childSnapshot.child("allarme1").getValue(String.class);
+                            String allarme2 = childSnapshot.child("allarme2").getValue(String.class);
+                            String allarme3 = childSnapshot.child("allarme3").getValue(String.class);
+
+
+
+                            //classe necessaria a deserializzare dati generici come liste ecc, firebase non riconosce automaticamente il tipo di dato.
+                            // Specifichiamo che stiamo ricevendo una lista di liste di double. Ogni lista indica una coordinata del punto del geofence.
+                            GenericTypeIndicator<ArrayList<ArrayList<Double>>> t = new GenericTypeIndicator<ArrayList<ArrayList<Double>>>() {};
+
+                            //Uso t per ottenere la mia lista di liste di double (coordinate)
+                            ArrayList<ArrayList<Double>> coordinateList = childSnapshot.child("coordinate").getValue(t);
+
+                            //richiamo drawGeofence che creerà l'oggetto e lo disegnerà
+                            drawGeofence(identificativo, titolo, allarme1, allarme2, allarme3, coordinateList);
+
+                            //indico che l'operazione è stata completata
+                            secondOperationCompleted.complete(null);
+                        }
+                    } else {
+                        // Se non ci sono nuove notifiche, indico semplicemente che l'operazione è stata completata
+                    }
+                }
+
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+                    Log.d("Errore", databaseError.getMessage());
+                }
+            });
+        });
+
+
+        //terza operazione serializzata. Viene richiamata dopo l'aggiornamento dei geofence precedente.
+        //Controlla se l'utente è coinvolto nel cambiamento dei geofence (se un geofence lo interessa).
+        //Viene eseguita solo se la seconda operazione ha rilevato dei nuovi geofence inseriti.
+        secondOperationCompleted.thenRun(() -> {
+            myRef4user.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    // Ottengo lo stato
+                    String state = dataSnapshot.child("information").child("stato").getValue(String.class);
+
+                    // Se lo stato != "OK" (ovvero un geofence lo sta influenzando)
                     if(!(state.equals("OK"))){
-                        String idGeofence = dataSnapshot.child("id_geofence").getValue(String.class);
+                        //ottengo l'id del geofence che lo sta influenzando
+                        String idGeofence = dataSnapshot.child("information").child("id_geofence").getValue(String.class);
+
+                        //creo un intent per l'allerta
                         Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+
+                        //inserisco l'activity riconosciuta nell'intent (per capire come riprodurre la notifica)
                         alertIntent.putExtra("recognizedActivity", recognizedActivity);
-                        //Log.d("IDGEOFENCE", idGeofence);
+
+                        //ottengo il geofence che sta influenzando l'utente dalla mia lista geofence (aggiornata in precedenza)
                         CustomGeofence cg = geofence.get(idGeofence);
+
+                        //ottengo le informazioni del geofence
                         String titolo = cg.getTitolo();
                         String allarme1 = cg.getAllarme1();
                         String allarme2 = cg.getAllarme2();
                         String allarme3 = cg.getAllarme3();
 
+                        //ottengo il poligono che caratterizza il geofence
                         Polygon p = cg.getPolygon();
+
+                        //ottengo i geoPoints che formano il poligono
                         List<GeoPoint> geoPoints = p.getPoints();
+
                         String coordinate = "";
                         int i = 0;
-                        for (GeoPoint geoPoint : geoPoints) {
-                            double latitude = geoPoint.getLatitude(); // Latitudine
-                            double longitude = geoPoint.getLongitude(); // Longitudine
+                        for (GeoPoint geoPoint : geoPoints) {                                   //per ogni geopoint
+                            //estraggo lat e lon e li aggiungo alla mia stringa coordinate
+                            double latitude = geoPoint.getLatitude();
+                            double longitude = geoPoint.getLongitude();
                             coordinate+=Integer.toString(i);
                             coordinate+=". Lat: ";
                             coordinate+= latitude;
                             coordinate+=", Lon: ";
                             coordinate+= longitude;
                             coordinate+="; ";
-
-                            // Ora puoi utilizzare latitude e longitude come vuoi
                         }
 
-
-
-                        Log.d("NOTIFICATION TEST", "HERE");
-
-
+                        //in base allo stato (che mi dice dove sono) inserisco l'allarme interessato, le coordinate e la priorità
                         switch (state) {
                             case "DENTRO IL GEOFENCE":
                                 alertIntent.putExtra("alertText", allarme1);
@@ -392,7 +417,6 @@ public class MainActivity extends AppCompatActivity {
                                 alertIntent.putExtra("coordinate", coordinate);
                                 alertIntent.putExtra("priority", 2);
                                 sendBroadcast(alertIntent);
-
                                 break;
                             case "1-2 KM DAL GEOFENCE":
                                 alertIntent.putExtra("alertText", allarme3);
@@ -408,65 +432,113 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void onCancelled(@NonNull DatabaseError databaseError) {
-                    // Gestisci eventuali errori durante il recupero dei dati dalla reference
-                    Log.d("Errore", "ERRORE: " + databaseError.getMessage());
+                    Log.d("Errore", databaseError.getMessage());
                 }
             });
         });
 
 
-        myRef4user_state.addChildEventListener(new ChildEventListener() {
+        //Listener per verificare se un figlio cambia (viene aggiunta una nuova notifica, un nuovo geofence)
+        myRef4geofence.addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
-                // Questo metodo viene chiamato quando viene aggiunto un nuovo figlio al nodo "notifiche"
-                // Puoi gestire qui la notifica o l'azione da intraprendere quando viene aggiunto un nuovo valore.
-
+                //Non inserisco niente qui perché il backend pusha prima un nuovo valore con solo l'identificativo.
+                //Successivamente aggiunge i vari valori, quindi devo guardare l'onChange.
             }
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
-                // Questo metodo viene chiamato quando i dati nella reference dell'utente cambiano
-                try{
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+                //qui vengono aggiunti realmente i valori distintivi del geofence
 
-                Log.d("PROVA", dataSnapshot.getKey());
-                String state = "";
-                state = dataSnapshot.child("stato").getValue(String.class);
-                Log.d("STATO", state);
+                String identificativo = dataSnapshot.getKey();                                          //prendo identificativo geofence
+                String titolo = dataSnapshot.child("titolo").getValue(String.class);               //prendo titolo
+                String allarme1 = dataSnapshot.child("allarme1").getValue(String.class);           //prendo allarme dentro il geofence
+                String allarme2 = dataSnapshot.child("allarme2").getValue(String.class);           //prendo allarme a 1km dal geofence
+                String allarme3 = dataSnapshot.child("allarme3").getValue(String.class);           //prendo allarme tra 1-2 km dal geofence
+
+                //classe necessaria a deserializzare dati generici come liste ecc, firebase non riconosce automaticamente il tipo di dato.
+                // Specifichiamo che stiamo ricevendo una lista di liste di double. Ogni lista indica una coordinata del punto del geofence.
+                GenericTypeIndicator<ArrayList<ArrayList<Double>>> t = new GenericTypeIndicator<ArrayList<ArrayList<Double>>>() {};
+
+                //Uso t per ottenere la mia lista di liste di double (coordinate)
+                ArrayList<ArrayList<Double>> coordinateList = dataSnapshot.child("coordinate").getValue(t);
+
+                //richiamo drawGeofence che creerà l'oggetto e lo disegnerà
+                drawGeofence(identificativo, titolo, allarme1, allarme2, allarme3, coordinateList);
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+                // Quando un geofence viene rimosso lo tolgo dalla mia lista di geofence
+                String identificativo = dataSnapshot.getKey();
+                deleteGeofence(identificativo);
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String previousChildName) {
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // Stampo l'errore
+                Log.d("ERRORE", databaseError.getMessage());
+            }
+        });
+
+
+
+        //funzione che viene richiamata quando uno dei campi di user cambia (o il geofence da cui è influenzato, o lo stato)
+        myRef4user.addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
+                //ottengo lo stato
+                String state = dataSnapshot.child("stato").getValue(String.class);
+
+                //se lo stato è != "OK" (c'è un geofence che sta influenzando l'utente)
                 if(!(state.equals("OK"))){
+                    //ottengo l'id del geofence
                     String idGeofence = dataSnapshot.child("id_geofence").getValue(String.class);
+
+                    //creo un intent per l'allerta
                     Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+
+                    //inserisco l'activity riconosciuta nell'intent (per capire come riprodurre la notifica)
                     alertIntent.putExtra("recognizedActivity", recognizedActivity);
-                    //Log.d("IDGEOFENCE", idGeofence);
+
+                    //ottengo il geofence che sta influenzando l'utente dalla mia lista geofence (aggiornata in precedenza)
                     CustomGeofence cg = geofence.get(idGeofence);
+
+                    //ottengo le informazioni del geofence
                     String titolo = cg.getTitolo();
                     String allarme1 = cg.getAllarme1();
                     String allarme2 = cg.getAllarme2();
                     String allarme3 = cg.getAllarme3();
 
+                    //ottengo il poligono che caratterizza il geofence
                     Polygon p = cg.getPolygon();
+
+                    //ottengo i geoPoints che formano il poligono
                     List<GeoPoint> geoPoints = p.getPoints();
+
                     String coordinate = "";
                     int i = 0;
-                    for (GeoPoint geoPoint : geoPoints) {
-                        double latitude = geoPoint.getLatitude(); // Latitudine
-                        double longitude = geoPoint.getLongitude(); // Longitudine
+                    for (GeoPoint geoPoint : geoPoints) {                                           //per ogni geopoint
+                        //estraggo lat e lon e li aggiungo alla mia stringa coordinate
+                        double latitude = geoPoint.getLatitude();
+                        double longitude = geoPoint.getLongitude();
                         coordinate+=Integer.toString(i);
                         coordinate+=". Lat: ";
                         coordinate+= latitude;
                         coordinate+=", Lon: ";
                         coordinate+= longitude;
                         coordinate+="; ";
-
-                        // Ora puoi utilizzare latitude e longitude come vuoi
                     }
 
-
-
-                    Log.d("ordine","1");
+                    //in base allo stato (che mi dice dove sono) inserisco l'allarme interessato, le coordinate e la priorità
                     switch (state) {
                         case "DENTRO IL GEOFENCE":
                             alertIntent.putExtra("alertText", allarme1);
@@ -480,7 +552,6 @@ public class MainActivity extends AppCompatActivity {
                             alertIntent.putExtra("coordinate", coordinate);
                             alertIntent.putExtra("priority", 2);
                             sendBroadcast(alertIntent);
-
                             break;
                         case "1-2 KM DAL GEOFENCE":
                             alertIntent.putExtra("alertText", allarme3);
@@ -495,89 +566,20 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onChildRemoved(DataSnapshot dataSnapshot) {
-                // Questo metodo viene chiamato quando un figlio viene rimosso dal nodo "notifiche"
             }
 
             @Override
             public void onChildMoved(DataSnapshot dataSnapshot, String previousChildName) {
-                // Questo metodo viene chiamato quando un figlio nel nodo "notifiche" viene spostato
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-                // Gestisci eventuali errore
-                Log.d("ERRORE", "ERRORE: " + databaseError.getMessage());
+                Log.d("ERRORE", databaseError.getMessage());
             }
         });
 
 
-        // Verifica se il GPS è attualmente disattivato
-        locationManagerImpl = new LocationManagerImpl(this); // Passa il contesto dell'app
-        locationManagerImpl.checkAndRequestLocationUpdates(); // ascolta aggiornamenti
 
-        // Inizializzo activityRecognition e pendingIntent
-        activityRecognitionClient = ActivityRecognition.getClient(this);
-        Intent intent = new Intent(this, ActivityRecognitionService.class);
-        pendingIntent = PendingIntent.getService(
-                this,
-                0,
-                intent,
-                PendingIntent.FLAG_MUTABLE
-        );
-
-        // Inizializzo il FusedLocationProviderClient
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-
-        // Configurazione delle richieste di posizione
-        locationRequest = new LocationRequest()
-                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(15000); // Intervallo di aggiornamento della posizione in millisecondi
-
-        Toast.makeText(getApplicationContext(), "START", Toast.LENGTH_SHORT).show();
-
-        //inizializzo di default l'attività iniziale come IN_VEHICLE
-        recognizedActivity = IN_VEHICLE;
-
-        // Inizializzo l'intentFilter per i risultati dell'Activity Recognition
-        IntentFilter intentFilter = new IntentFilter("ACTION_ACTIVITY_RECOGNITION_RESULT");
-        //setto il receiver per ottenere i risultati della misurazione
-        registerReceiver(activityRecognitionReceiver, intentFilter);
-
-        // Richiedi le attività rilevate
-        activityRecognitionClient.requestActivityUpdates(2000, pendingIntent);
-
-        //inizializzo l'intentFilter per i risultati dell'Activity Recognition
-        IntentFilter alertIntentFilter = new IntentFilter("ACTION_NEW_ALERT_NOTIFICATION");
-        //setto il receiver per ottenere i risultati della misurazione
-        registerReceiver(alertReceiver, alertIntentFilter);
-
-        // Inizializza la configurazione di OpenStreetMap
-        Configuration.getInstance().load(getApplicationContext(), getSharedPreferences("OpenStreetMap", MODE_PRIVATE));
-
-        // inizializzazione mapView
-        initMapView();
-
-        //ROBA PER INVIO DATI A BACKEND
-
-        //url del localhost da emulatore. Se da telefono vero sostituire con 127.0.0.1:5001
-        String BASE_URL = "http://10.0.2.2:5001";
-//        String BASE_URL = "http://192.168.1.189:5001";
-        // Inizializza Retrofit
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        // Crea un'istanza dell'interfaccia ApiService
-        sendUserDataService = retrofit.create(SendUserDataService.class);
-
-        userData = new UserData();
-
-
-        //drawGeofence();
-
-        //richiedo aggiornamenti posizione
-        requestLocationUpdates();
 
     }
 
@@ -585,7 +587,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onRestart() {
         super.onRestart();
         if (locationManagerImpl.getLocationManager().isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            // Il GPS è stato abilitato, puoi chiudere il dialog qui se è ancora aperto
+            // Il GPS è stato abilitato
             if (locationManagerImpl.getLocationDialog() != null && locationManagerImpl.getLocationDialog().isShowing()) {
                 locationManagerImpl.getLocationDialog().dismiss();
             }
@@ -601,7 +603,7 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == LOCATION_SETTINGS_REQUEST_CODE) {
             // Il codice di richiesta corrisponde alle impostazioni di localizzazione
             if (locationManagerImpl.getLocationManager().isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                // Il GPS è stato abilitato, puoi chiudere il dialog qui se è ancora aperto
+                // Il GPS è stato abilitato
                 if (locationManagerImpl.getLocationDialog() != null && locationManagerImpl.getLocationDialog().isShowing()) {
                     locationManagerImpl.getLocationDialog().dismiss();
                 }
@@ -612,32 +614,24 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Esegui le operazioni necessarie per rilevare la chiusura definitiva dell'app
-        // Questo metodo verrà chiamato quando l'Activity viene distrutta
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        scaleGestureDetector.onTouchEvent(event); // Passa l'evento alla ScaleGestureDetector
+        scaleGestureDetector.onTouchEvent(event);
         return super.onTouchEvent(event);
     }
 
-    // Calcola la distanza tra due punti in MotionEvent
-    private float getDistance(MotionEvent event) {
-        float x = event.getX(0) - event.getX(1);
-        float y = event.getY(0) - event.getY(1);
-        return (float) Math.sqrt(x * x + y * y);
-    }
+
 
     /**
-     * Metodo usato per creare ed inizializzare il canale delle notifiche per gli alert
-     * che verranno inviati dal server
+     * Metodo usato per creare ed inizializzare il canale delle notifiche per gli alert.
      * */
     private void initAlertNotificationChannel() {
-        // Creazione del canale delle notifiche per gli alert
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            /* Verifica se il dispositivo Android in esecuzione ha una versione maggiore o uguale
+         /* Controllo se il dispositivo Android in esecuzione ha una versione maggiore o uguale
                a Android 8.0 (API 26) perché i canali delle notifiche sono supportati solo in questa versione in poi */
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            //inizializzo il canale
             String channelId = "alertChannelId";
             CharSequence channelName = "ALERT CHANNEL";
             String channelDescription = "Canale utile per la ricezione delle notifiche di nuovi alert";
@@ -646,16 +640,16 @@ public class MainActivity extends AppCompatActivity {
             alertChannel = new NotificationChannel(channelId, channelName, importance);
             alertChannel.setDescription(channelDescription);
 
-            // Ottieni il NotificationManager
+            // Ottengo il NotificationManager
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
 
-            // Crea il canale
+            // Creo il canale
             notificationManager.createNotificationChannel(alertChannel);
 
             // Creo il receiver degli alert e setto l'ìd del canale
             alertReceiver = new AlertReceiver(this, alertChannel.getId());
         } else {
-            throw new RuntimeException("PROBABLY SDK VERSION BELOW 26");
+            throw new RuntimeException("VERSIONE SDK NON SUPPORTATA");
         }
     }
 
@@ -663,8 +657,8 @@ public class MainActivity extends AppCompatActivity {
      * Metodo usato per inizializzare il launcher usato per le varie richieste di permessi
      * */
     private void initRequestPermissionsLauncher() {
-        // Inizializzo il launcher per la richiesta di autorizzazione.
-        // Viene richiamato se non abbiamo concesso l'autorizzazione per il riconoscimento delle attività
+        // Inizializzo il launcher per la richiesta dei permessi.
+        // Viene richiamato se non abbiamo concesso le varie autorizzazioni
         requestPermissionsLauncher =
                 registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
                         permissions -> {
@@ -677,11 +671,12 @@ public class MainActivity extends AppCompatActivity {
                             }
 
                             if (allPermissionsGranted) {
-                                // Tutti i permessi sono stati concessi, continua con il funzionamento dell'app
+                                // Tutti i permessi sono stati concessi
                                 Log.d("AUTORIZZAZIONI", "CONCESSE");
                             } else {
-                                // Almeno uno dei permessi è stato negato, puoi informare l'utente o gestire di conseguenza
-                                Log.d("AUTORIZZAZIONI", "NON (TUTTE O PARTE DI ESSE) CONCESSE");
+                                // Almeno uno o più permessi sono stati negati
+                                Toast.makeText(getApplicationContext(), "Per favore, concedi tutti i permessi dalle impostazioni", Toast.LENGTH_LONG).show();
+                                //finishAffinity();
                             }
                         });
     }
@@ -722,15 +717,15 @@ public class MainActivity extends AppCompatActivity {
      * Metodo usato per creare, inizializzare e visualizzare la MapView nell'applicazione.
      * */
     private void initMapView() {
-        // Ottieni la view della mappa dal layout XML
+        // Ottengo la view della mappa dal layout XML
         mapView = findViewById(R.id.mapView);
 
-        mapView.setMultiTouchControls(true); // Abilita il multi-touch
+        mapView.setMultiTouchControls(true); // Abilito il multi-touch
 
         mapController = (MapController) mapView.getController();
-        mapController.setZoom(20); // Imposta il livello di zoom iniziale
+        mapController.setZoom(20);      // Imposto il livello di zoom iniziale
 
-        // Abilita il provider di posizione GPS
+        // Abilito il provider di posizione GPS
         mapView.setTileSource(TileSourceFactory.MAPNIK);
 
         // Imposto la posizione a una iniziale fittizia per evitare valori null iniziali e lo setto come centro della mappa
@@ -739,20 +734,14 @@ public class MainActivity extends AppCompatActivity {
         scaleGestureDetector = new ScaleGestureDetector(this, new MyScaleGestureListener());
 
 
-        // Aggiungi un overlay di posizione
+        // Aggiungo un overlay di posizione
         myLocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider(getApplicationContext()), mapView);
-        myLocationOverlay.enableMyLocation();                     //mette l'omino sulla mappa
+        myLocationOverlay.enableMyLocation();                     // metto l'omino sulla mappa
         mapView.getOverlays().add(myLocationOverlay);
 
 
-        // Creo un overlay dei marcatori con il marker predefinito di OSM
-        itemizedIconOverlay = new ItemizedIconOverlay<>(new ArrayList<>(),
-                getResources().getDrawable(org.osmdroid.library.R.drawable.marker_default), null, getApplicationContext());
-        mapView.getOverlays().add(itemizedIconOverlay);
-
         //flag che uso per centrare la vista, mi serve successivamente, momentaneo
-        center = 1;
-
+        centerMap = 1;
     }
 
 
@@ -760,9 +749,10 @@ public class MainActivity extends AppCompatActivity {
      * Metodo per inviare la posizione al backend Flask
      * */
     private void sendLocationToBackend(double latitude, double longitude) {
-
+        //setto i dati dell'utente
         userData.setData(username, latitude, longitude, recognizedActivity);
-        // Effettuo la richiesta HTTP POST. uso l'istanza dell'interfaccia SendPositionService (dove è gestito la richiesta POST)
+
+        // Effettuo la richiesta HTTP
         Call<Void> call = sendUserDataService.uploadData(userData);
 
         call.enqueue(new Callback<Void>() {
@@ -770,21 +760,14 @@ public class MainActivity extends AppCompatActivity {
             public void onResponse(Call<Void> call, Response<Void> response) {
                 if (response.isSuccessful()) {
                     //Log.d("SEND LOCATION TO BACKEND,", "success");
-                    // La posizione è stata inviata con successo
-                    // Puoi gestire la risposta del backend qui se necessario
                 } else {
                     //Log.d("SEND LOCATION TO BACKEND,", "failure");
-                    // Gestisci un errore nella risposta del backend (es. codice di errore HTTP)
-                    // Puoi mostrare un messaggio di errore all'utente o registrare l'errore
                 }
             }
 
             @Override
             public void onFailure(Call<Void> call, Throwable t) {
                 //Log.e("Retrofit", "Errore durante la richiesta HTTP", t);
-                //t.printStackTrace();
-                // Gestisci un errore nella richiesta HTTP (es. problema di connessione)
-                // Puoi mostrare un messaggio di errore all'utente o registrare l'errore
             }
         });
     }
@@ -797,95 +780,43 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 if (locationResult != null && locationResult.getLastLocation() != null) {
+                    //ottengo la posizione
                     location = locationResult.getLastLocation();
-                    //ottengo la posizione e faccio qualcosa
-                    //Log.d("POSIZIONE", "Lat: " + location.getLatitude() + ", Long: " + location.getLongitude());
 
-                    //invio la posizione al backend (prova). Chiamo il metodo sendLocationToBackend
+                    //invio la posizione al backend
                     sendLocationToBackend(location.getLatitude(), location.getLongitude());
-                    //Log.d("Invio", "effettuato");
 
                     //creo la currentlocation (per la mappa)
                     GeoPoint currentLocation = new GeoPoint(location.getLatitude(), location.getLongitude());
 
-                    //Log.d("POSIZIONE", "Lat: " + currentLocation.getLatitude() + ", Long: " + currentLocation.getLongitude());
 
-                    //uso questo flag per capire se è la prima volta che richiediamo l'aggiornamento della posizione
-                    //se sì, aggiorno la posizione a quella rilevata (ho dovuto impostare un valore qualsiasi per l'inizializzazione per
-                    //evitare un riferimento null alla location). Se center è uguale a 1, ovvero è la prima volta che entro, aggiorno la posizione
-                    //e centro la mappa sulla posizione rilevata. Successivamente lo incremento perché se no la mappa verrebbe centrata a ogni
-                    //chiamata di questo metodo per l'aggiornamento della posizione e non mi permetterebbe di muovermi per la mappa
-                    if(center==1){
+                    //uso il flag per capire se centrare la mappa o no
+                    if(centerMap ==1){
                         mapView.getController().setCenter(currentLocation);
                     }
 
-                    center+=1;
-
-                    // Creo un oggetto OverlayItem (marker) con le coordinate rilevate
-                    //OverlayItem myLocationMarker = new OverlayItem("La mia posizione", "Descrizione della posizione", currentLocation);
-
-                    // Aggiungi il marker all'overlay dei marcatori
-                    //itemizedIconOverlay.addItem(myLocationMarker);
+                    centerMap +=1;
 
                     // Aggiorna la mappa
                     mapView.invalidate();
+
+
                 }
             }
         };
 
+        // ulteriore controllo sui permessi (da inserire obbligatoriamente per richiedere update della location)
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             return;
         }
 
-        //Richiamo requestLocationUpdates. Vuole per forza sto if sopra qui, è messo anche prima ma non gli va bene, poi vedrò perché
+        //Richiamo requestLocationUpdates
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
 
+        // indico che ho eseguito la prima richiesta di aggiornamenti posizione
+        firstOperationCompleted.complete(null);
     }
 
-    /*
-    private void drawGeofence(ArrayList<ArrayList<Double>> points){
-        ArrayList<GeoPoint> polygonPoints = new ArrayList<>();
-        for (int i=0;i<points.size(); i++){
-            ArrayList<Double> coppiaCoordinate = points.get(i);
-            Double latitudine = coppiaCoordinate.get(0);
-            Double longitudine = coppiaCoordinate.get(1);
-            polygonPoints.add(new GeoPoint(latitudine, longitudine));
-        }
-        //inserisco di nuovo ultimo punto per chiudere il geofence
-        ArrayList<Double> coppiaCoordinate = points.get(0);
-        Double latitudine = coppiaCoordinate.get(0);
-        Double longitudine = coppiaCoordinate.get(1);
-        polygonPoints.add(new GeoPoint(latitudine, longitudine));
-
-        /*
-        polygonPoints.add(new GeoPoint(44.493760, 11.343032)); // Vertice 1
-        polygonPoints.add(new GeoPoint(44.493760, 11.343234)); // Vertice 2
-        polygonPoints.add(new GeoPoint(44.493911, 11.343437)); // Vertice 3
-        polygonPoints.add(new GeoPoint(44.494072, 11.343437)); // Vertice 4
-        polygonPoints.add(new GeoPoint(44.494222, 11.343234)); // Vertice 5
-        polygonPoints.add(new GeoPoint(44.494222, 11.343032)); // Vertice 6
-        polygonPoints.add(new GeoPoint(44.493760, 11.343032)); // Torna al Vertice 1 per chiudere il poligono
-        */
-
-
-    /*
-        // Creazione del poligono
-        Polygon polygon = new Polygon();
-        polygon.setPoints(polygonPoints);
-        polygon.setFillColor(0x22FF0000); // Colore di riempimento con alpha
-        polygon.setStrokeColor(Color.RED); // Colore del bordo
-        polygon.setStrokeWidth(2); // Larghezza del bordo
-
-        mapView.getOverlayManager().add(polygon);
-    }
-    */
 
     private void drawGeofence(String identificativo, String titolo, String allarme1, String allarme2, String allarme3,ArrayList<ArrayList<Double>> points){
         ArrayList<GeoPoint> polygonPoints = new ArrayList<>();
@@ -902,18 +833,6 @@ public class MainActivity extends AppCompatActivity {
         polygonPoints.add(new GeoPoint(latitudine, longitudine));
 
 
-        /*
-        polygonPoints.add(new GeoPoint(44.493760, 11.343032)); // Vertice 1
-        polygonPoints.add(new GeoPoint(44.493760, 11.343234)); // Vertice 2
-        polygonPoints.add(new GeoPoint(44.493911, 11.343437)); // Vertice 3
-        polygonPoints.add(new GeoPoint(44.494072, 11.343437)); // Vertice 4
-        polygonPoints.add(new GeoPoint(44.494222, 11.343234)); // Vertice 5
-        polygonPoints.add(new GeoPoint(44.494222, 11.343032)); // Vertice 6
-        polygonPoints.add(new GeoPoint(44.493760, 11.343032)); // Torna al Vertice 1 per chiudere il poligono
-        */
-
-
-
         // Creazione del poligono
         Polygon polygon = new Polygon();
         polygon.setPoints(polygonPoints);
@@ -924,12 +843,11 @@ public class MainActivity extends AppCompatActivity {
         CustomGeofence cg = new CustomGeofence(titolo, allarme1, allarme2, allarme3, polygon);
         geofence.put(identificativo, cg);
 
-        Log.d("ORDINE", "4");
-
         mapView.getOverlayManager().add(polygon);
     }
 
 
+    //metodo per cancellare un geofence
     private void deleteGeofence(String identificativo){
         CustomGeofence cg = geofence.get(identificativo);
         Polygon polygon = cg.getPolygon();
@@ -939,24 +857,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // Listener per il gesto di pizzicamento
+    // Listener per il gesto di pizzicamento (per zoommare pizzicando)
     private class MyScaleGestureListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
         @Override
         public boolean onScale(ScaleGestureDetector detector) {
             float scaleFactor = detector.getScaleFactor();
             float zoomLevel = (float) mapView.getZoomLevelDouble();
 
-            // Calcola il nuovo livello di zoom
+            // Calcolo il nuovo livello di zoom
             zoomLevel *= scaleFactor;
 
-            // Limita il livello di zoom minimo e massimo
+            // Limito il livello di zoom minimo e massimo
             if (zoomLevel < mapView.getMinZoomLevel()) {
                 zoomLevel = (float) mapView.getMinZoomLevel();
             } else if (zoomLevel > mapView.getMaxZoomLevel()) {
                 zoomLevel = (float) mapView.getMaxZoomLevel();
             }
 
-            // Imposta il nuovo livello di zoom
+            // Imposto il nuovo livello di zoom
             mapController.setZoom((int) zoomLevel);
 
             return true;

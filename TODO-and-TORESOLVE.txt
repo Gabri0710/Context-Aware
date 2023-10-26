@@ -2,7 +2,12 @@ RESOLVE:
 - PROBLEMA. SE FACCIO IL LOGOUT E RIENTRO CON UN ALTRO UTENTE, LA POSIZIONE VIENE AGGIORNATA A ENTRAMBI GLI UTENTI.
 - PROBLEMA. QUANDO AGGIUNGO UN NUOVO UTENTE, MI INSERISCE ANCHE UN RECORD CON USERNAME VUOTO.
 - i 2 problemi sopra sono perché la roba nella mainActivity viene creata nell'OnStart (2 perche quando apro l'app l'username non è assegnato, è uguale a "" e quindi inserisce l'utente vuoto) (1 perche l'ultimo valore memorizzato nella variabile username è assegnata all'utente con il quale poi si fa logout)
+FORSE RISOLTI
 
+
+
+RESOLVE:
+- 
 TODO:
+- inserire conteggio dei geofence coinvolti con l'utente e se viene cancellato mandare una notifica
 - refactor app mobile e fix avvio delle variabili nell'OnCreate
-- inserire grafica in frontend

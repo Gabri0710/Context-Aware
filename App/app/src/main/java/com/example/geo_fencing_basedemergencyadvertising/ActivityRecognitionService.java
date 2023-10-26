@@ -14,12 +14,12 @@ import com.google.android.gms.location.DetectedActivity;
 public class ActivityRecognitionService extends IntentService {
     public ActivityRecognitionService() {
         super("ActivityRecognitionService");
-
     }
 
     @Override
     protected void onHandleIntent(Intent intent) {
         if (ActivityRecognitionResult.hasResult(intent)) {
+            //detecto l'attività rilevata
             ActivityRecognitionResult result = ActivityRecognitionResult.extractResult(intent);
             DetectedActivity mostProbableActivity = result.getMostProbableActivity();
             int activityType = mostProbableActivity.getType();
@@ -27,14 +27,8 @@ public class ActivityRecognitionService extends IntentService {
 
             String activityName = getActivityName(activityType);
 
-            //TODO: da eliminare message successivamente, ora utile solo per test
-            String message = "Attività rilevata: " + activityName + " (Confidenza: " + confidence + ")";
-            Log.d("ActivityRecognition", message);
-            //showActivityToast(message);
-
+            //lo invio alla mainActivity
             sendActivityRecognitionResultToMainActivity(activityName);
-
-            Log.d("Method", "called");
         }
 
     }
@@ -47,7 +41,7 @@ public class ActivityRecognitionService extends IntentService {
     }
 
 
-
+    //associa l'activityType a una stringa che indica l'attività
     private String getActivityName(int activityType) {
         switch (activityType) {
             case DetectedActivity.IN_VEHICLE:

@@ -23,7 +23,7 @@ public class AuthActivity extends AppCompatActivity {
     private EditText editTextEmail;
     private EditText editTextPassword;
 
-//    FirebaseFirestore db = FirebaseFirestore.getInstance();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,16 +54,10 @@ public class AuthActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
-                            // Sign in success, update UI with the signed-in user's information
-                            FirebaseUser user = mAuth.getCurrentUser();
-
+                        if (task.isSuccessful()) {                             //se faccio la registrazione correttamente
                             goToMainActivity();
                         } else {
-                            // If sign in fails, display a message to the user.
-                            Toast.makeText(AuthActivity.this, "Impossibile effettuare la registrazione",
-                                    Toast.LENGTH_LONG).show();
-
+                            Toast.makeText(AuthActivity.this, "Impossibile effettuare la registrazione", Toast.LENGTH_LONG).show();
                         }
                     }
                 });
@@ -72,14 +66,10 @@ public class AuthActivity extends AppCompatActivity {
     private void signInUser(){
         mAuth.signInWithEmailAndPassword(editTextEmail.getText().toString(), editTextPassword.getText().toString())
                 .addOnCompleteListener(this, task -> {
-                    if (task.isSuccessful()) {
-                        // Sign in success, update UI with the signed-in user's information
-//                        FirebaseUser user = mAuth.getCurrentUser();
+                    if (task.isSuccessful()) {                                  //se faccio il login correttamente
                         goToMainActivity();
                     } else {
-                        // If sign in fails, display a message to the user.
-                        Toast.makeText(AuthActivity.this, "Credenziali errate",
-                                Toast.LENGTH_LONG).show();
+                        Toast.makeText(AuthActivity.this, "Credenziali errate", Toast.LENGTH_LONG).show();
                     }
                 });
     }

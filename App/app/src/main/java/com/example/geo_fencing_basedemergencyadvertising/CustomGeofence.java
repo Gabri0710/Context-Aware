@@ -2,6 +2,10 @@ package com.example.geo_fencing_basedemergencyadvertising;
 
 import org.osmdroid.views.overlay.Polygon;
 
+
+/**
+ * Oggetto personalizzato per la gestione di geofence
+ * */
 class CustomGeofence {
     private String titolo;
     private String allarme1;
@@ -32,8 +36,6 @@ class CustomGeofence {
     public String getAllarme3() {
         return allarme3;
     }
-
-
 
     public Polygon getPolygon() {
         return polygon;
