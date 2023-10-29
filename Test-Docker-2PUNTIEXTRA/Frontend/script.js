@@ -489,7 +489,7 @@ document.addEventListener('DOMContentLoaded', function() {
     //quando viene cliccato il pulsante per eliminare il geofence
     document.getElementById("deleteGeofenceForm").addEventListener("submit", function(event) {
         event.preventDefault();                                                                  //evito la ricarica della pagina
-        deleteGeofence(featureToDelete.get('id'));                                              //richiamo la funzione passando l'id del geofence associato
+        deleteGeofence(geofence_idLabel.textContent);                                              //richiamo la funzione passando l'id del geofence associato
         geofence_idLabel.textContent = "-";                                                     //pulisco le label
         geofence_nUsersLabel.textContent = "-";                                                 //pulisco le label
         geofence_titleLabel.textContent = "-";                                                  //pulisco le label

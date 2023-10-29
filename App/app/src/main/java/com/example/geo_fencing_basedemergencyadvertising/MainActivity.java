@@ -25,7 +25,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
+import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -120,7 +122,9 @@ public class MainActivity extends AppCompatActivity {
     private MyLocationNewOverlay myLocationOverlay;
 
     // flag per centrare la mappa solo all'avvio dell'app (non se l'utente sposta la mappa)
-    private int centerMap;
+    private boolean isMapToCenter;
+    // imageview usata come pulsante per centrare la mappa durante l'utilizzo dell'applicazione
+    private ImageView centerMapButton;
 
     // interfaccia per invio dati a backend
     private SendUserDataService sendUserDataService;
@@ -147,10 +151,18 @@ public class MainActivity extends AppCompatActivity {
     //Hashmap che contiene associazione chiave valore dove chiave=id_geofence - valore=oggetto CustomGeofence
     Map<String, CustomGeofence> geofence = new HashMap<String, CustomGeofence>();
 
-    //Oggetti dove memorizzo il risultato di un'operazione.
-    // Successivamente creerò una sequenzialità verificando che queste operazioni siano state eseguite o meno
+    //ArrayList che contiene i geofence che influenzano l'utente
+    ArrayList<ArrayList<String>> user_geofence = new ArrayList<>();
+
+    //Oggetti che utilizzo per realizzare una sequenzialità degli eventi.
     CompletableFuture<Void> firstOperationCompleted = new CompletableFuture<>();
     CompletableFuture<Void> secondOperationCompleted = new CompletableFuture<>();
+    CompletableFuture<Void> thirdOperationCompleted = new CompletableFuture<>();
+
+    //url del localhost da emulatore. Se da telefono vero sostituire con http://192.168.1.189:5001
+    String BASE_URL = "http://10.0.2.2:5001";
+    //String BASE_URL = "http://192.168.1.189:5001";
+
 
     // definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
     private final BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
@@ -177,9 +189,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    //url del localhost da emulatore. Se da telefono vero sostituire con 127.0.0.1:5001
-    String BASE_URL = "http://10.0.2.2:5001";
-    //String BASE_URL = "http://192.168.1.189:5001";
+
 
     public MainActivity() {
     }
@@ -215,6 +225,7 @@ public class MainActivity extends AppCompatActivity {
         usernameTextView = findViewById(R.id.usernameTextView);
         authBtn = findViewById(R.id.authBtn);
         mAuth = FirebaseAuth.getInstance();
+        centerMapButton = findViewById(R.id.centerMapButton);
 
         //ottengo l'utente con la quale ho loggato e lo assegno alla mia variabile privata
         FirebaseUser currentUser = mAuth.getCurrentUser();
@@ -309,7 +320,7 @@ public class MainActivity extends AppCompatActivity {
         requestLocationUpdates();
 
 
-        //Viene richiamato se viene aggiunto un geofence quando l'app non è in esecuzione.
+        //Viene richiamato se viene aggiunto o cancellato un geofence quando l'app non è in esecuzione.
         // Secondo metodo serializzato (viene eseguito dopo aver aggiornato la posizione quando viene aperta l'app)
         firstOperationCompleted.thenRun(() ->{
             myRef4geofence.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -337,12 +348,12 @@ public class MainActivity extends AppCompatActivity {
 
                             //richiamo drawGeofence che creerà l'oggetto e lo disegnerà
                             drawGeofence(identificativo, titolo, allarme1, allarme2, allarme3, coordinateList);
-
-                            //indico che l'operazione è stata completata
-                            secondOperationCompleted.complete(null);
                         }
+                        //indico che l'operazione è stata completata
+                        secondOperationCompleted.complete(null);
                     } else {
-                        // Se non ci sono nuove notifiche, indico semplicemente che l'operazione è stata completata
+                        // Se non ci sono nuove notifiche, indico comunque che l'operazione è stata completata
+                        secondOperationCompleted.complete(null);
                     }
                 }
 
@@ -354,80 +365,104 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
+
         //terza operazione serializzata. Viene richiamata dopo l'aggiornamento dei geofence precedente.
         //Controlla se l'utente è coinvolto nel cambiamento dei geofence (se un geofence lo interessa).
-        //Viene eseguita solo se la seconda operazione ha rilevato dei nuovi geofence inseriti.
         secondOperationCompleted.thenRun(() -> {
             myRef4user.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
-                    // Ottengo lo stato
-                    String state = dataSnapshot.child("information").child("stato").getValue(String.class);
+                    System.out.println("1");
+                    //creo un array temporaneo per memorizzare i geofence che influenzano l'utente
+                    ArrayList<ArrayList<String>> geofence_influence = new ArrayList<>();
 
-                    // Se lo stato != "OK" (ovvero un geofence lo sta influenzando)
-                    if(!(state.equals("OK"))){
-                        //ottengo l'id del geofence che lo sta influenzando
-                        String idGeofence = dataSnapshot.child("information").child("id_geofence").getValue(String.class);
-
-                        //creo un intent per l'allerta
-                        Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
-
-                        //inserisco l'activity riconosciuta nell'intent (per capire come riprodurre la notifica)
-                        alertIntent.putExtra("recognizedActivity", recognizedActivity);
-
-                        //ottengo il geofence che sta influenzando l'utente dalla mia lista geofence (aggiornata in precedenza)
-                        CustomGeofence cg = geofence.get(idGeofence);
-
-                        //ottengo le informazioni del geofence
-                        String titolo = cg.getTitolo();
-                        String allarme1 = cg.getAllarme1();
-                        String allarme2 = cg.getAllarme2();
-                        String allarme3 = cg.getAllarme3();
-
-                        //ottengo il poligono che caratterizza il geofence
-                        Polygon p = cg.getPolygon();
-
-                        //ottengo i geoPoints che formano il poligono
-                        List<GeoPoint> geoPoints = p.getPoints();
-
-                        String coordinate = "";
-                        int i = 0;
-                        for (GeoPoint geoPoint : geoPoints) {                                   //per ogni geopoint
-                            //estraggo lat e lon e li aggiungo alla mia stringa coordinate
-                            double latitude = geoPoint.getLatitude();
-                            double longitude = geoPoint.getLongitude();
-                            coordinate+=Integer.toString(i);
-                            coordinate+=". Lat: ";
-                            coordinate+= latitude;
-                            coordinate+=", Lon: ";
-                            coordinate+= longitude;
-                            coordinate+="; ";
+                    //se ci sono geofence che influenzano l'utente
+                    if (dataSnapshot.child("information").child("geofenceinfo").exists()) {
+                        for (DataSnapshot childSnapshot : dataSnapshot.child("information").child("geofenceinfo").getChildren()) {          //per ogni geofence
+                            // aggiungo id del geofence e stato dell'utente rispetto al geofence alla lista
+                            ArrayList<String> coppia = new ArrayList<>();
+                            coppia.add(childSnapshot.child("0").getValue(String.class));
+                            coppia.add(childSnapshot.child("1").getValue(String.class));
+                            geofence_influence.add(coppia);
                         }
 
-                        //in base allo stato (che mi dice dove sono) inserisco l'allarme interessato, le coordinate e la priorità
-                        switch (state) {
-                            case "DENTRO IL GEOFENCE":
-                                alertIntent.putExtra("alertText", allarme1);
-                                alertIntent.putExtra("coordinate", coordinate);
-                                alertIntent.putExtra("priority", 1);
-                                sendBroadcast(alertIntent);
-                                break;
-                            case "A 1 KM DAL GEOFENCE":
-                                alertIntent.putExtra("alertText", allarme2);
-                                alertIntent.putExtra("coordinate", coordinate);
-                                alertIntent.putExtra("priority", 2);
-                                sendBroadcast(alertIntent);
-                                break;
-                            case "1-2 KM DAL GEOFENCE":
-                                alertIntent.putExtra("alertText", allarme3);
-                                alertIntent.putExtra("coordinate", coordinate);
-                                alertIntent.putExtra("priority", 3);
-                                sendBroadcast(alertIntent);
-                                break;
+
+                        for (ArrayList<String> elem : geofence_influence) {
+                            // Ottengo id e stato
+                            String idGeofence = elem.get(0);
+                            String state = elem.get(1);
+
+                            //creo un intent per l'allerta
+                            Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+
+                            //inserisco l'activity riconosciuta nell'intent (per capire come riprodurre la notifica via audio)
+                            alertIntent.putExtra("recognizedActivity", recognizedActivity);
+
+                            //specifico che si tratta di un aggiunta di un geofence
+                            alertIntent.putExtra("add_del", "add");
+
+                            //ottengo il geofence che sta influenzando l'utente dalla mia lista geofence (aggiornata in precedenza)
+                            CustomGeofence cg = geofence.get(idGeofence);
+
+                            //ottengo le informazioni del geofence
+                            String titolo = cg.getTitolo();
+                            String allarme1 = cg.getAllarme1();
+                            String allarme2 = cg.getAllarme2();
+                            String allarme3 = cg.getAllarme3();
+
+                            //ottengo il poligono che caratterizza il geofence
+                            Polygon p = cg.getPolygon();
+
+                            //ottengo i geoPoints che formano il poligono
+                            List<GeoPoint> geoPoints = p.getPoints();
+
+                            String coordinate = "";
+                            int i = 0;
+                            for (GeoPoint geoPoint : geoPoints) {                                   //per ogni geopoint
+                                //estraggo lat e lon e li aggiungo alla mia stringa coordinate
+                                double latitude = geoPoint.getLatitude();
+                                double longitude = geoPoint.getLongitude();
+                                coordinate+=Integer.toString(i);
+                                coordinate+=". Lat: ";
+                                coordinate+= latitude;
+                                coordinate+=", Lon: ";
+                                coordinate+= longitude;
+                                coordinate+="; ";
+                            }
+
+                            //in base allo stato (che mi dice dove sono) inserisco l'allarme interessato, le coordinate e la priorità
+                            switch (state) {
+                                case "DENTRO IL GEOFENCE":
+                                    alertIntent.putExtra("alertText", allarme1);
+                                    alertIntent.putExtra("coordinate", coordinate);
+                                    alertIntent.putExtra("priority", 1);
+                                    sendBroadcast(alertIntent);
+                                    break;
+                                case "A 1 KM DAL GEOFENCE":
+                                    alertIntent.putExtra("alertText", allarme2);
+                                    alertIntent.putExtra("coordinate", coordinate);
+                                    alertIntent.putExtra("priority", 2);
+                                    sendBroadcast(alertIntent);
+                                    break;
+                                case "1-2 KM DAL GEOFENCE":
+                                    alertIntent.putExtra("alertText", allarme3);
+                                    alertIntent.putExtra("coordinate", coordinate);
+                                    alertIntent.putExtra("priority", 3);
+                                    sendBroadcast(alertIntent);
+                                    break;
+                            }
+
                         }
+
                     }
 
-
+                    // faccio una copia dei geofence presenti nella mia lista user_geofence (per controlli successivi)
+                    user_geofence.clear();
+                    for (ArrayList<String> innerList : geofence_influence) {
+                        ArrayList<String> innerCopy = new ArrayList<>(innerList);
+                        user_geofence.add(innerCopy);
+                    }
+                    thirdOperationCompleted.complete(null);
                 }
 
                 @Override
@@ -438,7 +473,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-        //Listener per verificare se un figlio cambia (viene aggiunta una nuova notifica, un nuovo geofence)
+        //Listener per verificare se viene aggiunto un nuovo geofence
         myRef4geofence.addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
@@ -472,6 +507,7 @@ public class MainActivity extends AppCompatActivity {
                 // Quando un geofence viene rimosso lo tolgo dalla mia lista di geofence
                 String identificativo = dataSnapshot.getKey();
                 deleteGeofence(identificativo);
+
             }
 
             @Override
@@ -480,105 +516,172 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-                // Stampo l'errore
                 Log.d("ERRORE", databaseError.getMessage());
             }
         });
 
 
 
-        //funzione che viene richiamata quando uno dei campi di user cambia (o il geofence da cui è influenzato, o lo stato)
-        myRef4user.addChildEventListener(new ChildEventListener() {
+        //funzione che viene richiamata quando uno dei campi di user cambia (o un geofence da cui è influenzato, o lo stato)
+        thirdOperationCompleted.thenRun(() -> {
+        myRef4user.addValueEventListener(new ValueEventListener() {
             @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
-            }
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                System.out.println("2");
 
-            @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
-                //ottengo lo stato
-                String state = dataSnapshot.child("stato").getValue(String.class);
+                //creo una lista temporanea di geofence che influenzano l'utente
+                ArrayList<ArrayList<String>> geofence_influence = new ArrayList<>();
 
-                //se lo stato è != "OK" (c'è un geofence che sta influenzando l'utente)
-                if(!(state.equals("OK"))){
-                    //ottengo l'id del geofence
-                    String idGeofence = dataSnapshot.child("id_geofence").getValue(String.class);
+                //se esistono geofence che influenzano l'utente
+                if (dataSnapshot.child("information").child("geofenceinfo").exists()) {
+                    for (DataSnapshot childSnapshot : dataSnapshot.child("information").child("geofenceinfo").getChildren()) {         //per ogni geofence
+                        //aggiungo id geofence e stato dell'utente verso il geofence alla lista
+                        ArrayList<String> coppia = new ArrayList<>();
+                        coppia.add(childSnapshot.child("0").getValue(String.class));
+                        coppia.add(childSnapshot.child("1").getValue(String.class));
+                        geofence_influence.add(coppia);
+                    }
+                }
 
+                // se i geofence che influenzano sono meno di quelli che influenzavano prima, si è cancellato un geofence, mando una notifica
+                if(geofence_influence.size()<user_geofence.size()){
                     //creo un intent per l'allerta
                     Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+
+                    //specifico che si tratta di una cancellazione
+                    alertIntent.putExtra("add_del", "del");
 
                     //inserisco l'activity riconosciuta nell'intent (per capire come riprodurre la notifica)
                     alertIntent.putExtra("recognizedActivity", recognizedActivity);
 
-                    //ottengo il geofence che sta influenzando l'utente dalla mia lista geofence (aggiornata in precedenza)
-                    CustomGeofence cg = geofence.get(idGeofence);
+                    //invio l'allerta
+                    sendBroadcast(alertIntent);
+                }
 
-                    //ottengo le informazioni del geofence
-                    String titolo = cg.getTitolo();
-                    String allarme1 = cg.getAllarme1();
-                    String allarme2 = cg.getAllarme2();
-                    String allarme3 = cg.getAllarme3();
-
-                    //ottengo il poligono che caratterizza il geofence
-                    Polygon p = cg.getPolygon();
-
-                    //ottengo i geoPoints che formano il poligono
-                    List<GeoPoint> geoPoints = p.getPoints();
-
-                    String coordinate = "";
-                    int i = 0;
-                    for (GeoPoint geoPoint : geoPoints) {                                           //per ogni geopoint
-                        //estraggo lat e lon e li aggiungo alla mia stringa coordinate
-                        double latitude = geoPoint.getLatitude();
-                        double longitude = geoPoint.getLongitude();
-                        coordinate+=Integer.toString(i);
-                        coordinate+=". Lat: ";
-                        coordinate+= latitude;
-                        coordinate+=", Lon: ";
-                        coordinate+= longitude;
-                        coordinate+="; ";
+                //altrimenti, è un'aggiunta
+                else{
+                    //creo due liste per determinare quali geofence sono già stati considerati (e gli stati associati)
+                    ArrayList<String> idpresenti = new ArrayList<>();
+                    ArrayList<Integer> statipresenti = new ArrayList<>();
+                    for (ArrayList<String> coppia : user_geofence) {
+                        if (!coppia.isEmpty()) {
+                            idpresenti.add(coppia.get(0));
+                            if (coppia.get(1).equals("DENTRO IL GEOFENCE")) {
+                                statipresenti.add(1);
+                            }
+                            else if (coppia.get(1).equals("A 1 KM DAL GEOFENCE")) {
+                                statipresenti.add(2);
+                            }
+                            else {
+                                statipresenti.add(3);
+                            }
+                        }
                     }
 
-                    //in base allo stato (che mi dice dove sono) inserisco l'allarme interessato, le coordinate e la priorità
-                    switch (state) {
-                        case "DENTRO IL GEOFENCE":
-                            alertIntent.putExtra("alertText", allarme1);
-                            alertIntent.putExtra("coordinate", coordinate);
-                            alertIntent.putExtra("priority", 1);
-                            sendBroadcast(alertIntent);
-                            Log.d("TESTSEIDENTRO", "IL GEOFENCE");
-                            break;
-                        case "A 1 KM DAL GEOFENCE":
-                            alertIntent.putExtra("alertText", allarme2);
-                            alertIntent.putExtra("coordinate", coordinate);
-                            alertIntent.putExtra("priority", 2);
-                            sendBroadcast(alertIntent);
-                            break;
-                        case "1-2 KM DAL GEOFENCE":
-                            alertIntent.putExtra("alertText", allarme3);
-                            alertIntent.putExtra("coordinate", coordinate);
-                            alertIntent.putExtra("priority", 3);
-                            sendBroadcast(alertIntent);
-                            break;
+                    //per ogni geofence considerato
+                    for (ArrayList<String> elem : geofence_influence) {
+                        // Ottengo id e stato associato ad esso
+                        String idGeofence = elem.get(0);
+                        String state = elem.get(1);
+
+                        //definisco stato come variabile intera (mi serve dopo)
+                        int nstate;
+                        if (state.equals("DENTRO IL GEOFENCE")) {
+                            nstate = 1;
+                        }
+                        else if (state.equals("A 1 KM DAL GEOFENCE")) {
+                            nstate = 2;
+                        }
+                        else {
+                            nstate = 3;
+                        }
+
+                        //controllo se è già presente, e se sì, a che indice della lista
+                        int isPresent = idpresenti.indexOf(idGeofence);
+
+                        //se non è presente o è già presente ma lo stato è diventato più grave (mi sono avvicinato al geofence)
+                        if ((isPresent==-1) || (isPresent!=-1 && nstate<statipresenti.get(isPresent))){
+                            //creo un intent per l'allerta
+                            Intent alertIntent = new Intent("ACTION_NEW_ALERT_NOTIFICATION");
+
+                            //inserisco l'activity riconosciuta nell'intent (per capire come riprodurre la notifica)
+                            alertIntent.putExtra("recognizedActivity", recognizedActivity);
+
+                            //specifico che si tratta di un'aggiunta
+                            alertIntent.putExtra("add_del", "add");
+
+                            //ottengo il geofence che sta influenzando l'utente dalla mia lista geofence (aggiornata in precedenza)
+                            CustomGeofence cg = geofence.get(idGeofence);
+
+                            //ottengo le informazioni del geofence
+                            String titolo = cg.getTitolo();
+                            String allarme1 = cg.getAllarme1();
+                            String allarme2 = cg.getAllarme2();
+                            String allarme3 = cg.getAllarme3();
+
+                            //ottengo il poligono che caratterizza il geofence
+                            Polygon p = cg.getPolygon();
+
+                            //ottengo i geoPoints che formano il poligono
+                            List<GeoPoint> geoPoints = p.getPoints();
+
+                            String coordinate = "";
+                            int i = 0;
+                            for (GeoPoint geoPoint : geoPoints) {                                   //per ogni geopoint
+                                //estraggo lat e lon e li aggiungo alla mia stringa coordinate
+                                double latitude = geoPoint.getLatitude();
+                                double longitude = geoPoint.getLongitude();
+                                coordinate+=Integer.toString(i);
+                                coordinate+=". Lat: ";
+                                coordinate+= latitude;
+                                coordinate+=", Lon: ";
+                                coordinate+= longitude;
+                                coordinate+="; ";
+                            }
+
+                            //in base allo stato (che mi dice dove sono) inserisco l'allarme interessato, le coordinate e la priorità
+                            switch (state) {
+                                case "DENTRO IL GEOFENCE":
+                                    alertIntent.putExtra("alertText", allarme1);
+                                    alertIntent.putExtra("coordinate", coordinate);
+                                    alertIntent.putExtra("priority", 1);
+                                    sendBroadcast(alertIntent);
+                                    break;
+                                case "A 1 KM DAL GEOFENCE":
+                                    alertIntent.putExtra("alertText", allarme2);
+                                    alertIntent.putExtra("coordinate", coordinate);
+                                    alertIntent.putExtra("priority", 2);
+                                    sendBroadcast(alertIntent);
+                                    break;
+                                case "1-2 KM DAL GEOFENCE":
+                                    alertIntent.putExtra("alertText", allarme3);
+                                    alertIntent.putExtra("coordinate", coordinate);
+                                    alertIntent.putExtra("priority", 3);
+                                    sendBroadcast(alertIntent);
+                                    break;
+                            }
+                        }
+
+
                     }
+                }
+
+                //faccio una copia dei geofence considerati per aggiornare la mia lista locale
+                user_geofence.clear();
+                for (ArrayList<String> innerList : geofence_influence) {
+                    ArrayList<String> innerCopy = new ArrayList<>(innerList);
+                    user_geofence.add(innerCopy);
                 }
 
             }
 
             @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
-            }
-
-            @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String previousChildName) {
-            }
-
-            @Override
             public void onCancelled(DatabaseError databaseError) {
                 Log.d("ERRORE", databaseError.getMessage());
             }
         });
 
-
+        });
 
 
     }
@@ -695,8 +798,7 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.ACCESS_COARSE_LOCATION,
                     "android.permission.ACTIVITY_RECOGNITION",
-                    "android.permission.POST_NOTIFICATIONS",
-                    "android.permission.RECORD_AUDIO",
+                    "android.permission.POST_NOTIFICATIONS"
             };
 
             List<String> permissionsToRequest = new ArrayList<>();
@@ -740,8 +842,17 @@ public class MainActivity extends AppCompatActivity {
         mapView.getOverlays().add(myLocationOverlay);
 
 
-        //flag che uso per centrare la vista, mi serve successivamente, momentaneo
-        centerMap = 1;
+        //flag che uso per centrare la vista
+        isMapToCenter = true;
+
+        centerMapButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Imposto il flag per centrare la mappa a true
+                isMapToCenter = true;
+                requestLocationUpdates();
+            }
+        });
     }
 
 
@@ -791,11 +902,11 @@ public class MainActivity extends AppCompatActivity {
 
 
                     //uso il flag per capire se centrare la mappa o no
-                    if(centerMap ==1){
+                    if(isMapToCenter){
                         mapView.getController().setCenter(currentLocation);
                     }
 
-                    centerMap +=1;
+                    isMapToCenter = false;
 
                     // Aggiorna la mappa
                     mapView.invalidate();

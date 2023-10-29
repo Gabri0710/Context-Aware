@@ -54,30 +54,39 @@ public class AlertReceiver extends BroadcastReceiver {
         //inizializzo recognizedActivity
         int recognizedActivity = 0;
 
-        if (intent.hasExtra("priority") && intent.hasExtra("recognizedActivity")) {
+        if (intent.hasExtra("add_del")) {
             Bundle extras = intent.getExtras();
             if (extras != null) {
-                //prendo gli extra inseriti dalla mainActivity per creare l'allarme
-                int priority = extras.getInt("priority");
-                recognizedActivity = extras.getInt("recognizedActivity");
-                alertText = extras.getString("alertText");
-                coordinate = extras.getString("coordinate");
 
-                //creo l'allarme in base a dove mi trovo (dentro il geofence, a 1km, tra 1-2km)
-                switch (priority) {
-                    case 1:
-                        notificationText = "ALLARME: " + alertText + " con coordinate: " + coordinate;
-                        priorityLevel = NotificationCompat.PRIORITY_MAX;
-                        break;
-                    case 2:
-                        notificationText = "ALLARME: " + alertText + " con coordinate: " + coordinate;
-                        priorityLevel = NotificationCompat.PRIORITY_HIGH;
-                        break;
-                    case 3:
-                        notificationText = "ALLARME: " + alertText + " con coordinate: " + coordinate;
-                        // priority level = DEFAULT
-                        break;
+                if (extras.getString("add_del").equals("del")){
+                    recognizedActivity = extras.getInt("recognizedActivity");
+                    notificationText = "Un'allarme è stato rimosso, controlla la mappa!";
+                    priorityLevel = NotificationCompat.PRIORITY_MAX;
                 }
+                else{
+                    //prendo gli extra inseriti dalla mainActivity per creare l'allarme
+                    int priority = extras.getInt("priority");
+                    recognizedActivity = extras.getInt("recognizedActivity");
+                    alertText = extras.getString("alertText");
+                    coordinate = extras.getString("coordinate");
+
+                    //creo l'allarme in base a dove mi trovo (dentro il geofence, a 1km, tra 1-2km)
+                    switch (priority) {
+                        case 1:
+                            notificationText = "ALLARME: " + alertText + " con coordinate: " + coordinate;
+                            priorityLevel = NotificationCompat.PRIORITY_MAX;
+                            break;
+                        case 2:
+                            notificationText = "ALLARME: " + alertText + " con coordinate: " + coordinate;
+                            priorityLevel = NotificationCompat.PRIORITY_HIGH;
+                            break;
+                        case 3:
+                            notificationText = "ALLARME: " + alertText + " con coordinate: " + coordinate;
+                            // priority level = DEFAULT
+                            break;
+                    }
+                }
+
             }
         }
 
