@@ -68,20 +68,19 @@ public class AlertReceiver extends BroadcastReceiver {
                     int priority = extras.getInt("priority");
                     recognizedActivity = extras.getInt("recognizedActivity");
                     alertText = extras.getString("alertText");
-                    coordinate = extras.getString("coordinate");
 
                     //creo l'allarme in base a dove mi trovo (dentro il geofence, a 1km, tra 1-2km)
                     switch (priority) {
                         case 1:
-                            notificationText = "ALLARME: " + alertText + " con coordinate: " + coordinate;
+                            notificationText = "ALLARME: " + alertText;
                             priorityLevel = NotificationCompat.PRIORITY_MAX;
                             break;
                         case 2:
-                            notificationText = "ALLARME: " + alertText + " con coordinate: " + coordinate;
+                            notificationText = "ALLARME: " + alertText;
                             priorityLevel = NotificationCompat.PRIORITY_HIGH;
                             break;
                         case 3:
-                            notificationText = "ALLARME: " + alertText + " con coordinate: " + coordinate;
+                            notificationText = "ALLARME: " + alertText;
                             // priority level = DEFAULT
                             break;
                     }

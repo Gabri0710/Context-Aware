@@ -409,43 +409,20 @@ public class MainActivity extends AppCompatActivity {
                             String allarme2 = cg.getAllarme2();
                             String allarme3 = cg.getAllarme3();
 
-                            //ottengo il poligono che caratterizza il geofence
-                            Polygon p = cg.getPolygon();
-
-                            //ottengo i geoPoints che formano il poligono
-                            List<GeoPoint> geoPoints = p.getPoints();
-
-                            String coordinate = "";
-                            int i = 0;
-                            for (GeoPoint geoPoint : geoPoints) {                                   //per ogni geopoint
-                                //estraggo lat e lon e li aggiungo alla mia stringa coordinate
-                                double latitude = geoPoint.getLatitude();
-                                double longitude = geoPoint.getLongitude();
-                                coordinate+=Integer.toString(i);
-                                coordinate+=". Lat: ";
-                                coordinate+= latitude;
-                                coordinate+=", Lon: ";
-                                coordinate+= longitude;
-                                coordinate+="; ";
-                            }
-
                             //in base allo stato (che mi dice dove sono) inserisco l'allarme interessato, le coordinate e la priorità
                             switch (state) {
                                 case "DENTRO IL GEOFENCE":
                                     alertIntent.putExtra("alertText", allarme1);
-                                    alertIntent.putExtra("coordinate", coordinate);
                                     alertIntent.putExtra("priority", 1);
                                     sendBroadcast(alertIntent);
                                     break;
                                 case "A 1 KM DAL GEOFENCE":
                                     alertIntent.putExtra("alertText", allarme2);
-                                    alertIntent.putExtra("coordinate", coordinate);
                                     alertIntent.putExtra("priority", 2);
                                     sendBroadcast(alertIntent);
                                     break;
                                 case "1-2 KM DAL GEOFENCE":
                                     alertIntent.putExtra("alertText", allarme3);
-                                    alertIntent.putExtra("coordinate", coordinate);
                                     alertIntent.putExtra("priority", 3);
                                     sendBroadcast(alertIntent);
                                     break;
@@ -618,43 +595,20 @@ public class MainActivity extends AppCompatActivity {
                                 String allarme2 = cg.getAllarme2();
                                 String allarme3 = cg.getAllarme3();
 
-                                //ottengo il poligono che caratterizza il geofence
-                                Polygon p = cg.getPolygon();
-
-                                //ottengo i geoPoints che formano il poligono
-                                List<GeoPoint> geoPoints = p.getPoints();
-
-                                String coordinate = "";
-                                int i = 0;
-                                for (GeoPoint geoPoint : geoPoints) {                                   //per ogni geopoint
-                                    //estraggo lat e lon e li aggiungo alla mia stringa coordinate
-                                    double latitude = geoPoint.getLatitude();
-                                    double longitude = geoPoint.getLongitude();
-                                    coordinate+=Integer.toString(i);
-                                    coordinate+=". Lat: ";
-                                    coordinate+= latitude;
-                                    coordinate+=", Lon: ";
-                                    coordinate+= longitude;
-                                    coordinate+="; ";
-                                }
-
                                 //in base allo stato (che mi dice dove sono) inserisco l'allarme interessato, le coordinate e la priorità
                                 switch (state) {
                                     case "DENTRO IL GEOFENCE":
                                         alertIntent.putExtra("alertText", allarme1);
-                                        alertIntent.putExtra("coordinate", coordinate);
                                         alertIntent.putExtra("priority", 1);
                                         sendBroadcast(alertIntent);
                                         break;
                                     case "A 1 KM DAL GEOFENCE":
                                         alertIntent.putExtra("alertText", allarme2);
-                                        alertIntent.putExtra("coordinate", coordinate);
                                         alertIntent.putExtra("priority", 2);
                                         sendBroadcast(alertIntent);
                                         break;
                                     case "1-2 KM DAL GEOFENCE":
                                         alertIntent.putExtra("alertText", allarme3);
-                                        alertIntent.putExtra("coordinate", coordinate);
                                         alertIntent.putExtra("priority", 3);
                                         sendBroadcast(alertIntent);
                                         break;
