@@ -52,6 +52,7 @@ public class AuthActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+
         signUpBtn.setOnClickListener(view -> {
             registerUser();
         });
@@ -65,6 +66,12 @@ public class AuthActivity extends AppCompatActivity {
 
         //richiamo il dialog se ci sono permessi da concedere
         checkAllPermissions();
+
+        // Se l'utente ha fatto in precedenza il login senza effettuare il logout
+        // reindirizzo l'utente direttamente alla main activity
+        if (mAuth.getCurrentUser() != null){
+            goToMainActivity();
+        }
     }
 
     private void registerUser(){

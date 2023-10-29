@@ -3,6 +3,7 @@ package com.example.geo_fencing_basedemergencyadvertising;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -20,8 +21,10 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -775,13 +778,41 @@ public class MainActivity extends AppCompatActivity {
 
                             if (allPermissionsGranted) {
                                 // Tutti i permessi sono stati concessi
-                                Log.d("AUTORIZZAZIONI", "CONCESSE");
                             } else {
                                 // Almeno uno o più permessi sono stati negati
-                                Toast.makeText(getApplicationContext(), "Per favore, concedi tutti i permessi dalle impostazioni", Toast.LENGTH_LONG).show();
-                                //finishAffinity();
+                                // Mostro un dialog che informa l'utente e chiede se vuole aprire le impostazioni.
+                                // Se l'utente clicca "No", l'applicazione viene chiusa
+                                showAlertPermissionDialog();
                             }
                         });
+    }
+
+    /**
+     * Metodo che mostra una finestra di dialogo per richiedere
+     * all'utente di concedere tutti i permessi richiesti dall'applicazione.
+     */
+    private void showAlertPermissionDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Permessi richiesti per continuare");
+        builder.setMessage("Per utilizzare questa applicazione, devi concedere tutti i permessi richiesti. Vuoi andare alle impostazioni?");
+        builder.setPositiveButton("Sì", (dialog, which) -> {
+            // L'utente ha scelto "Sì", chiudi la finestra di dialogo e apri le impostazioni di localizzazione
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            Uri uri = Uri.fromParts("package", getPackageName(), null);
+            intent.setData(uri);
+            startActivity(intent);
+            dialog.dismiss();
+        });
+        builder.setNegativeButton("No", (dialog, which) -> {
+            // L'utente ha scelto "No", chiudi la finestra di dialogo
+            dialog.dismiss();
+
+            // chiudi l'app
+            finishAffinity();
+        });
+
+        // Assegno la finestra di dialogo a locationDialog e lo mostra
+        builder.create().show();
     }
 
     /**
@@ -853,6 +884,17 @@ public class MainActivity extends AppCompatActivity {
                 requestLocationUpdates();
             }
         });
+
+        //se tocco la mappa, non voglio che la mappa continui a centrarsi sulla mia posizione
+        mapView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    isMapToCenter = false;
+                }
+                return false;
+            }
+        });
     }
 
 
@@ -905,8 +947,6 @@ public class MainActivity extends AppCompatActivity {
                     if(isMapToCenter){
                         mapView.getController().setCenter(currentLocation);
                     }
-
-                    isMapToCenter = false;
 
                     // Aggiorna la mappa
                     mapView.invalidate();
