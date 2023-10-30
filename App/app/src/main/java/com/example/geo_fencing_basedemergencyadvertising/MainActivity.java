@@ -163,15 +163,15 @@ public class MainActivity extends AppCompatActivity {
     CompletableFuture<Void> thirdOperationCompleted = new CompletableFuture<>();
 
     //url per connettersi a localhost da emulatore. Se da dispositivo fisico sostituire con indirizzo fornito da flask o con link ngrok se su docker
-    String BASE_URL = "http://10.0.2.2:5001";
-    //String BASE_URL = "http://192.168.1.189:5001";
+//    String BASE_URL = "http://10.0.2.2:5001";
+    String BASE_URL = "http://192.168.1.189:5001";
     //String BASE_URL = "https://link_ngrok_qui";
 
     // definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
     private final BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            System.out.println("ENTRA");
+
             if (intent.getAction() != null && intent.getAction().equals("ACTION_ACTIVITY_RECOGNITION_RESULT")) {
                 String activityMessage = intent.getStringExtra("ACTIVITY_MESSAGE");
                 if (activityMessage.equals("In macchina")) {
@@ -183,10 +183,10 @@ public class MainActivity extends AppCompatActivity {
                 // Toast con attività riconosciuta (scopo didattico)
                 if (recognizedActivity == 1) {
                     Toast.makeText(MainActivity.this, "walking", Toast.LENGTH_SHORT).show();
-                    System.out.println("Attività: a piedi");
+
                 } else {
                     Toast.makeText(MainActivity.this, "car", Toast.LENGTH_SHORT).show();
-                    System.out.println("Attività: in macchina");
+
                 }
 
             }
@@ -371,7 +371,7 @@ public class MainActivity extends AppCompatActivity {
             myRef4user.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
-                    System.out.println("1");
+
                     //creo un array temporaneo per memorizzare i geofence che influenzano l'utente
                     ArrayList<ArrayList<String>> geofence_influence = new ArrayList<>();
 
@@ -503,7 +503,7 @@ public class MainActivity extends AppCompatActivity {
             myRef4user.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
-                    System.out.println("2");
+
 
                     //creo una lista temporanea di geofence che influenzano l'utente
                     ArrayList<ArrayList<String>> geofence_influence = new ArrayList<>();
@@ -637,7 +637,6 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-        System.out.println("ONCREATE");
     }
 
 

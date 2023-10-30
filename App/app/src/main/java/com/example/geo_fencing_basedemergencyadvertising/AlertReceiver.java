@@ -4,6 +4,7 @@ import static android.content.Intent.getIntent;
 
 import android.app.Activity;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -89,14 +90,18 @@ public class AlertReceiver extends BroadcastReceiver {
             }
         }
 
+        Intent intent1 = new Intent(context, MainActivity.class);
+        intent1.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent1, PendingIntent.FLAG_IMMUTABLE);
 
         // Creazione della notifica tramite builder
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, alertChannelId)
                 .setSmallIcon(R.drawable.ic_launcher_background)
                 .setContentTitle("ALLERTA")
                 .setContentText(notificationText)
-                .setPriority(priorityLevel);
-
+                .setPriority(priorityLevel)
+                .setContentIntent(pendingIntent) // Imposto il PendingIntent per aprire l'app
+                .setAutoCancel(true); // Chiudo la notifica quando l'utente fa clic su di essa;
 
         // Invio della notifica tramite Notification Manager
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
