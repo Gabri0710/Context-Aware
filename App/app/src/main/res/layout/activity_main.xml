@@ -33,6 +33,7 @@
         android:layout_marginEnd="20dp"
         android:backgroundTint="#DA1917"
         android:text="logout"
+        android:textColor="@android:color/white"
         android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@+id/usernameTextView" />

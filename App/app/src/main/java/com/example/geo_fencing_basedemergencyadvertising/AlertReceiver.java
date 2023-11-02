@@ -96,7 +96,7 @@ public class AlertReceiver extends BroadcastReceiver {
 
         // Creazione della notifica tramite builder
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, alertChannelId)
-                .setSmallIcon(R.drawable.ic_launcher_background)
+                .setSmallIcon(R.mipmap.logo)
                 .setContentTitle("ALLERTA")
                 .setContentText(notificationText)
                 .setPriority(priorityLevel)
