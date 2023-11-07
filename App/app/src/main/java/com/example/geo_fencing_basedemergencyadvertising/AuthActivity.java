@@ -82,7 +82,8 @@ public class AuthActivity extends AppCompatActivity {
                         if (task.isSuccessful()) {                             //se faccio la registrazione correttamente
                             goToMainActivity();
                         } else {
-                            Toast.makeText(AuthActivity.this, "Impossibile effettuare la registrazione", Toast.LENGTH_LONG).show();
+                            Toast.makeText(AuthActivity.this, "Unable to register. " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                            System.out.println();
                         }
                     }
                 });
