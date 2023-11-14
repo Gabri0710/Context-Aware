@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.geo_fencing_basedemergencyadvertising"
-        minSdk = 24
+        minSdk = 29
         targetSdk = 33
         versionCode = 1
         versionName = "1.0"
