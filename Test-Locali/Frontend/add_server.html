@@ -1,0 +1,38 @@
+<html lang="en">
+  <head>
+    <link rel="stylesheet" href=".\ol\ol.css" type="text/css">
+    <style>
+      .map {
+        height: 550px;
+        width: 80%;
+      }
+      .container {
+            display: flex;
+        }
+      .label{
+        font-size: 24px;
+      }
+      
+    </style>
+    <script src=".\ol\dist\ol.js" type="text/javascript"> </script>
+    <script src=".\script_add_server.js"></script>
+
+    <title>Add server form</title>
+  </head>
+
+
+  <body>
+    <h2>Geofence emergency admin setup</h2>
+
+    <form id="addServerForm">
+      <label for="inputData">Inserisci posizione server e username</label>
+      <input type="text" id="inputData" name="id_server" autocomplete="off">
+      <button type="submit">Inserisci username: 1 o 2</button>
+    </form>
+
+    <button id="loadServer">Visualizza Server</button>
+    <br>
+    <div id="map" class="map"></div>
+
+  </body>
+</html>

@@ -1,0 +1,3 @@
+Capire bene role.yaml e role-binding.yaml, file che servono a concedere i permessi di lettura dei deployment presenti e modifica di essi (per attivare o disattivarne uno piuttosto che un altro). 
+
+edgecontrol.yaml non è attivato. Attivarlo al momento giusto per mostrarlo al prof con kubectl apply -f edgecontrol-deployment.yaml

@@ -27,9 +27,9 @@ CORS(app)
 
 
 # Configuro la connessione con il database postgis
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@database-service:5433/geofence-emergency'          #da usare su kubernetes
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@database-service:5433/geofence-emergency'          #da usare su kubernetes
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@database-container/geofence-emergency'             #da usare se si usa solo docker
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost:5431/geofence-emergency'                  #da usare se si testa in locale
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost:5431/geofence-emergency'                  #da usare se si testa in locale
 db = SQLAlchemy(app)
 
 

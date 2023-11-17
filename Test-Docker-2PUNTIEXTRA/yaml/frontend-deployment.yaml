@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: frontend-deployment
 spec:
-  replicas: 1 # Numero desiderato di repliche del frontend
+  replicas: 1 
   selector:
     matchLabels:
       app: frontend
@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
       - name: frontend-container
-        image: gabri071098/frontendimage:extra6 # Inserisci il nome dell'immagine del tuo frontend
+        image: gabri071098/frontendimage:latest 
         ports:
         - containerPort: 80 # Porta su cui il frontend è accessibile all'interno del container

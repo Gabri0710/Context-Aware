@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: database-deployment
 spec:
-  replicas: 1 # Puoi regolare il numero di repliche in base alle tue esigenze
+  replicas: 1 
   selector:
     matchLabels:
       app: database
@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: database-container
-        image: gabri071098/databaseimage:extra4 # Inserisci il nome dell'immagine del tuo database
+        image: gabri071098/databaseimage:latest 
         ports:
         - containerPort: 5432 # Porta su cui il database è accessibile all'interno del container
         #env:
