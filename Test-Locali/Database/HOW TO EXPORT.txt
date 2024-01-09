@@ -1,3 +1,0 @@
-HOW TO EXPORT:
-Go in the path of PostgreSQL/version/bin and run by cmd with admin permission:
-.\pg_dump -U nomeutente -d miodatabase -h localhost -f percorso\destinazione\dump.sql
