@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+      version: deployment-2
+  template:
+    metadata:
+      labels:
+        app: backend
+        version: deployment-2
+    spec:
+      containers:
+      - name: backend-container
+        image: gabri071098/backendimage:latest
+        ports:
+        - containerPort: 5001
+

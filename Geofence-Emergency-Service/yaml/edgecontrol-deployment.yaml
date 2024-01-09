@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edgecontrol-deployment
+spec:
+  replicas: 1  
+  selector:
+    matchLabels:
+      app: edgecontrol
+  template:
+    metadata:
+      labels:
+        app: edgecontrol
+    spec:
+      containers:
+        - name: edgecontrol-container
+          image: gabri071098/edgecontrolimage:latest  # L'immagine Docker che hai costruito
+      # Puoi aggiungere ulteriori configurazioni come i volumi, le variabili d'ambiente, ecc.
