@@ -1,0 +1,4 @@
+Context-Aware Systems Project, Proposal 3: Geo-fencing-based emergency advertising.
+Developed By Gabriele Magazzù and Gabriele Raciti.
+
+Inside the folder, you can find the components related to the mobile app in the "App" folder and the components related to Backend, Frontend, Database, and Docker and Kubernetes functionalities in the "Geofence-Emergency-Service" folder. For security reasons, the Firebase key (associated with the Google account) necessary for accessing and modifying the Realtime Database, required for the proper functioning of the service, has not been included. You can also find test user credentials within the main directory. Lastly, you can find the project report in the "Report" folder.
