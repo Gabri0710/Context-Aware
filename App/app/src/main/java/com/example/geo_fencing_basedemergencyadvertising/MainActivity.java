@@ -165,15 +165,9 @@ public class MainActivity extends AppCompatActivity {
     CompletableFuture<Void> thirdOperationCompleted = new CompletableFuture<>();
 
     //url per connettersi a localhost da emulatore. Se da dispositivo fisico sostituire con indirizzo fornito da flask o con link ngrok se su docker
-<<<<<<< HEAD
-    String BASE_URL = "http://10.0.2.2:5001";
-    //String BASE_URL = "http://192.168.1.189:5001";
-    //String BASE_URL = "https://link_ngrok_qui";
-=======
 //    String BASE_URL = "http://10.0.2.2:5001";
     //String BASE_URL = "http://192.168.1.189:5001";
     String BASE_URL = "https://dce2-95-235-108-251.ngrok-free.app/";
->>>>>>> 8c064bd0ba1deeb911be88d77d730630434973e9
 
     // definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
     private final BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
