@@ -98,6 +98,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int IN_VEHICLE = 2;
 
 
+    private boolean shouldRequestLocationUpdates;
+
     // definisco oggetti che mi servono per l'ottenimento della posizione
     private FusedLocationProviderClient fusedLocationClient;
     private LocationRequest locationRequest;
@@ -164,8 +166,8 @@ public class MainActivity extends AppCompatActivity {
 
     //url per connettersi a localhost da emulatore. Se da dispositivo fisico sostituire con indirizzo fornito da flask o con link ngrok se su docker
 //    String BASE_URL = "http://10.0.2.2:5001";
-    String BASE_URL = "http://192.168.1.189:5001";
-    //String BASE_URL = "https://link_ngrok_qui";
+    //String BASE_URL = "http://192.168.1.189:5001";
+    String BASE_URL = "https://dce2-95-235-108-251.ngrok-free.app/";
 
     // definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
     private final BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
@@ -208,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
         this.username = currentUser.getUid();
         this.usernameTextView.setText(currentUser.getEmail());
         authBtn.setOnClickListener(view -> {            // se l'utente clicca il pulsante logout
+            shouldRequestLocationUpdates = false;
             FirebaseAuth.getInstance().signOut();
             goToAuthActivity();
         });
@@ -230,6 +233,8 @@ public class MainActivity extends AppCompatActivity {
         authBtn = findViewById(R.id.authBtn);
         mAuth = FirebaseAuth.getInstance();
         centerMapButton = findViewById(R.id.centerMapButton);
+
+        shouldRequestLocationUpdates = true;
 
         //ottengo l'utente con la quale ho loggato e lo assegno alla mia variabile privata
         FirebaseUser currentUser = mAuth.getCurrentUser();
@@ -644,7 +649,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
 
-
         //inizializzo l'intentFilter per la ricezione delle notifiche di allerta
         IntentFilter alertIntentFilter = new IntentFilter("ACTION_NEW_ALERT_NOTIFICATION");
         // associo il broadcast receiver al filtro per la ricezione delle notifiche
@@ -898,10 +902,9 @@ public class MainActivity extends AppCompatActivity {
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
-                if (locationResult != null && locationResult.getLastLocation() != null) {
+                if (shouldRequestLocationUpdates && locationResult != null && locationResult.getLastLocation() != null) {
                     //ottengo la posizione
                     location = locationResult.getLastLocation();
-
                     //invio la posizione al backend
                     sendLocationToBackend(location.getLatitude(), location.getLongitude());
 
@@ -927,11 +930,14 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        //Richiamo requestLocationUpdates
-        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
+        if (shouldRequestLocationUpdates){
+            //Richiamo requestLocationUpdates
+            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
 
-        // indico che ho eseguito la prima richiesta di aggiornamenti posizione
-        firstOperationCompleted.complete(null);
+            // indico che ho eseguito la prima richiesta di aggiornamenti posizione
+            firstOperationCompleted.complete(null);
+        }
+
     }
 
 
