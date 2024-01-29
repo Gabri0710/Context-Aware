@@ -19,6 +19,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationManager;
 import android.net.Uri;
@@ -130,6 +131,13 @@ public class MainActivity extends AppCompatActivity {
     private boolean isMapToCenter;
     // imageview usata come pulsante per centrare la mappa durante l'utilizzo dell'applicazione
     private ImageView centerMapButton;
+    // imageview usata come icona per riconoscere l'attività rilevata dalle API
+    private ImageView activityIcon;
+    // icona che rappresenta l'attività motoria a piedi
+    private Drawable walkingIcon;
+    // icona che rappresenta l'attività motoria in macchina
+    private Drawable carIcon;
+
 
     // interfaccia per invio dati a backend
     private SendUserDataService sendUserDataService;
@@ -167,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
     //url per connettersi a localhost da emulatore. Se da dispositivo fisico sostituire con indirizzo fornito da flask o con link ngrok se su docker
     //String BASE_URL = "http://10.0.2.2:5001";                 //da emulatore
     //String BASE_URL = "http://192.168.1.189:5001";
-    String BASE_URL = "link_ngrok_qui";
+    String BASE_URL = "https://1c82-95-235-108-251.ngrok-free.app/";
 
     // definisco oggetto dove manderemo i risultati dell'attività riconosciuta, con relativa logica nel cambio attività
     private final BroadcastReceiver activityRecognitionReceiver = new BroadcastReceiver() {
@@ -184,11 +192,11 @@ public class MainActivity extends AppCompatActivity {
 
                 // Toast con attività riconosciuta (scopo didattico)
                 if (recognizedActivity == 1) {
-                    Toast.makeText(MainActivity.this, "walking", Toast.LENGTH_SHORT).show();
-
+//                    Toast.makeText(MainActivity.this, "walking", Toast.LENGTH_SHORT).show();
+                    activityIcon.setImageDrawable(walkingIcon);
                 } else {
-                    Toast.makeText(MainActivity.this, "car", Toast.LENGTH_SHORT).show();
-
+//                    Toast.makeText(MainActivity.this, "car", Toast.LENGTH_SHORT).show();
+                    activityIcon.setImageDrawable(carIcon);
                 }
 
             }
@@ -233,6 +241,10 @@ public class MainActivity extends AppCompatActivity {
         authBtn = findViewById(R.id.authBtn);
         mAuth = FirebaseAuth.getInstance();
         centerMapButton = findViewById(R.id.centerMapButton);
+        activityIcon = findViewById(R.id.activityIcon);
+        walkingIcon = ContextCompat.getDrawable(this, R.drawable.walking_icon);
+        carIcon = ContextCompat.getDrawable(this, R.drawable.car_icon);
+
 
         shouldRequestLocationUpdates = true;
 

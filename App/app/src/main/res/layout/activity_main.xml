@@ -12,7 +12,9 @@
         android:layout_height="match_parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent" >
+
+    </org.osmdroid.views.MapView>
 
     <TextView
         android:id="@+id/usernameTextView"
@@ -37,6 +39,16 @@
         android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@+id/usernameTextView" />
+
+    <ImageView
+        android:id="@+id/activityIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="25dp"
+        android:layout_marginBottom="50dp"
+        app:layout_constraintBottom_toBottomOf="@+id/mapView"
+        app:layout_constraintStart_toStartOf="@+id/mapView"
+        app:srcCompat="@drawable/car_icon" />
 
     <ImageView
         android:id="@+id/centerMapButton"
